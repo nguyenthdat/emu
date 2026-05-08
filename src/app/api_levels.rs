@@ -74,6 +74,7 @@ impl App {
                     }
                 }
             }
+            state.needs_render = true;
         });
     }
 
@@ -186,6 +187,7 @@ impl App {
                                 api_mgmt.install_progress = Some(progress);
                             }
                         }
+                        state.needs_render = true;
                     });
                 })
                 .await;
@@ -199,6 +201,7 @@ impl App {
                         eta_seconds: None,
                     });
                 }
+                state.needs_render = true;
             }
 
             tokio::time::sleep(API_INSTALLATION_COMPLETION_DELAY).await;
@@ -210,6 +213,7 @@ impl App {
                     api_mgmt.install_progress = None;
                     api_mgmt.error_message = Some(format!("Failed to install: {error}"));
                 }
+                state.needs_render = true;
             } else {
                 let mut state = state_clone.lock().await;
                 if let Some(ref mut api_mgmt) = state.api_level_management {
@@ -248,6 +252,7 @@ impl App {
                             }
                         }
                     }
+                    state.needs_render = true;
                 });
             }
         });
@@ -310,6 +315,7 @@ impl App {
                     "Failed to uninstall: {}",
                     last_error.unwrap_or_else(|| anyhow::anyhow!("Unknown error"))
                 ));
+                state.needs_render = true;
             }
 
             {
@@ -337,6 +343,7 @@ impl App {
                         }
                     }
                 }
+                state.needs_render = true;
             });
         });
     }

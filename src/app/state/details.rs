@@ -88,6 +88,7 @@ impl AppState {
             details.device_path.is_some()
         );
         self.cached_device_details = Some(details);
+        self.needs_render = true;
     }
 
     /// Clears all cached device details.

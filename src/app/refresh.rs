@@ -102,6 +102,7 @@ impl App {
 
             state.is_loading = false;
             state.mark_refreshed();
+            state.mark_dirty();
 
             let need_detail_update = if let Some(ref started_name) = device_started {
                 match state.active_panel {
@@ -195,6 +196,7 @@ impl App {
 
         state.is_loading = false;
         state.mark_refreshed();
+        state.mark_dirty();
 
         Ok(())
     }

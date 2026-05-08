@@ -312,6 +312,7 @@ impl App {
                 let mut state = state_clone.lock().await;
                 state.create_device_form.creation_status =
                     Some(format!("Creating device '{device_name_for_display}'..."));
+                state.needs_render = true;
             }
 
             let result = match active_panel {
@@ -335,6 +336,7 @@ impl App {
                         let mut state = state_clone.lock().await;
                         state.create_device_form.creation_status =
                             Some("Finalizing...".to_string());
+                        state.needs_render = true;
                     }
 
                     match active_panel {

@@ -35,6 +35,7 @@ use crate::{
 };
 use anyhow::Result;
 use crossterm::event::{self, Event as CrosstermEvent};
+use crossterm::terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate};
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -204,10 +205,17 @@ impl App {
                 continue;
             }
 
-            // Priority 2: Render UI after processing input for immediate visual feedback
+            // Priority 2: Render UI — only when state has changed or input was processed.
+            // BeginSynchronizedUpdate/EndSynchronizedUpdate (DEC PM 2026) prevents partial-frame
+            // flicker on supporting terminals by buffering all writes until EndSynchronizedUpdate.
             {
                 let mut state = self.state.lock().await;
-                terminal.draw(|f| ui::render::draw_app(f, &mut state, &ui::Theme::dark()))?;
+                if events_processed > 0 || state.needs_render {
+                    state.needs_render = false;
+                    crossterm::queue!(terminal.backend_mut(), BeginSynchronizedUpdate)?;
+                    terminal.draw(|f| ui::render::draw_app(f, &mut state, &ui::Theme::dark()))?;
+                    crossterm::execute!(terminal.backend_mut(), EndSynchronizedUpdate)?;
+                }
             }
 
             // Priority 3: Handle background tasks (less frequently to avoid blocking input)

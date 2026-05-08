@@ -70,6 +70,7 @@ impl App {
                         state.android_devices = android_devices;
                         state.is_loading = false;
                         state.mark_refreshed();
+                        state.mark_dirty();
 
                         let should_update_details = state.active_panel == Panel::Android
                             && !state.android_devices.is_empty()
@@ -140,6 +141,7 @@ impl App {
                 Ok(ios_devices) => {
                     let mut state = state_clone.lock().await;
                     state.ios_devices = ios_devices;
+                    state.mark_dirty();
 
                     let should_update_details = state.active_panel == Panel::Ios
                         && !state.ios_devices.is_empty()

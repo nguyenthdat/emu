@@ -34,6 +34,8 @@ impl AppState {
             let total_logs = self.device_logs.len();
             self.log_scroll_offset = total_logs.saturating_sub(1);
         }
+
+        self.needs_render = true;
     }
 
     /// Clears all device logs from memory.
@@ -159,6 +161,8 @@ impl AppState {
                     };
                 }
             }
+
+            self.needs_render = true;
         }
     }
 
@@ -177,6 +181,8 @@ impl AppState {
                     };
                 }
             }
+
+            self.needs_render = true;
         }
     }
 }

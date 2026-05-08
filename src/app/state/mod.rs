@@ -104,6 +104,9 @@ pub struct AppState {
     pub ios_scroll_offset: usize,
     /// API level management dialog state (when dialog is open)
     pub api_level_management: Option<ApiLevelManagementState>,
+    /// Dirty flag: set by background tasks and state mutations, cleared after each render.
+    /// Prevents unconditional 125 fps redraws when nothing has changed.
+    pub needs_render: bool,
 }
 
 impl Default for AppState {
@@ -140,6 +143,7 @@ impl Default for AppState {
             android_scroll_offset: 0,
             ios_scroll_offset: 0,
             api_level_management: None,
+            needs_render: true,
         }
     }
 }
@@ -148,6 +152,12 @@ impl AppState {
     /// Creates a new AppState with default values.
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Marks the UI as needing a redraw.
+    /// Call this from any background task that mutates state visible in the UI.
+    pub fn mark_dirty(&mut self) {
+        self.needs_render = true;
     }
 
     // --- Mode predicates ---
@@ -224,6 +234,8 @@ impl AppState {
         while self.notifications.len() > self.max_notifications {
             self.notifications.pop_front();
         }
+
+        self.needs_render = true;
     }
 
     /// Adds a success notification with green color.
@@ -248,7 +260,11 @@ impl AppState {
 
     /// Removes notifications that have exceeded their auto-dismiss duration.
     pub fn dismiss_expired_notifications(&mut self) {
+        let before = self.notifications.len();
         self.notifications.retain(|n| !n.should_dismiss());
+        if self.notifications.len() != before {
+            self.needs_render = true;
+        }
     }
 
     /// Clears all notifications from the queue.
