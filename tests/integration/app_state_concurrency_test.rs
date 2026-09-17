@@ -3,8 +3,8 @@
 //! This test suite verifies concurrent access patterns and
 //! state management integrity of AppState.
 
-use emu::app::state::AppState;
 use emu::app::Panel;
+use emu::app::state::AppState;
 use emu::models::device::{AndroidDevice, DeviceStatus, IosDevice};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -180,12 +180,14 @@ async fn test_concurrent_error_handling() {
 
     let final_state = state.lock().unwrap();
     assert!(!final_state.notifications.is_empty());
-    assert!(final_state
-        .notifications
-        .back()
-        .unwrap()
-        .message
-        .contains("Error from task"));
+    assert!(
+        final_state
+            .notifications
+            .back()
+            .unwrap()
+            .message
+            .contains("Error from task")
+    );
 }
 
 #[tokio::test]

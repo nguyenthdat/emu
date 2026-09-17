@@ -1,4 +1,4 @@
-use super::{state, App, Mode, Panel};
+use super::{App, Mode, Panel, state};
 use crate::constants::performance::DETAIL_UPDATE_DEBOUNCE;
 use crate::managers::common::{DeviceConfig, DeviceManager};
 use crate::models::device_info::sort_android_devices_for_display;
@@ -122,25 +122,25 @@ impl App {
                     }
                 }
                 Panel::Ios => {
-                    if let Some(ref ios_manager) = ios_manager {
-                        if let Ok((device_types, runtimes)) = tokio::try_join!(
+                    if let Some(ref ios_manager) = ios_manager
+                        && let Ok((device_types, runtimes)) = tokio::try_join!(
                             ios_manager.list_device_types_with_names(),
                             ios_manager.list_runtimes()
-                        ) {
-                            let mut state = state_clone.lock().await;
-                            {
-                                let mut cache = state.device_cache.write().await;
-                                cache.update_ios_cache(device_types.clone(), runtimes.clone());
-                            }
-
-                            Self::initialize_create_device_form(
-                                &mut state.create_device_form,
-                                device_types,
-                                runtimes,
-                                "No iOS device types available.",
-                                "No iOS runtimes available. Install iOS runtimes using Xcode.",
-                            );
+                        )
+                    {
+                        let mut state = state_clone.lock().await;
+                        {
+                            let mut cache = state.device_cache.write().await;
+                            cache.update_ios_cache(device_types.clone(), runtimes.clone());
                         }
+
+                        Self::initialize_create_device_form(
+                            &mut state.create_device_form,
+                            device_types,
+                            runtimes,
+                            "No iOS device types available.",
+                            "No iOS runtimes available. Install iOS runtimes using Xcode.",
+                        );
                     }
                 }
             }

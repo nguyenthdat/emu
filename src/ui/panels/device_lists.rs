@@ -9,10 +9,10 @@ use crate::{
     ui::Theme,
 };
 use ratatui::{
+    Frame,
     layout::Rect,
     style::{Modifier, Style},
     widgets::{Block, Borders, List, ListItem},
-    Frame,
 };
 
 pub(crate) fn render_android_panel(

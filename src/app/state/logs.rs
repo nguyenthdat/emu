@@ -150,14 +150,14 @@ impl AppState {
         {
             device.is_running = is_running;
 
-            if let Some(ref mut cached) = self.cached_device_details {
-                if cached.identifier == device_name {
-                    cached.status = if is_running {
-                        "Running".to_string()
-                    } else {
-                        "Stopped".to_string()
-                    };
-                }
+            if let Some(ref mut cached) = self.cached_device_details
+                && cached.identifier == device_name
+            {
+                cached.status = if is_running {
+                    "Running".to_string()
+                } else {
+                    "Stopped".to_string()
+                };
             }
         }
     }
@@ -168,14 +168,14 @@ impl AppState {
         if let Some(device) = self.ios_devices.iter_mut().find(|d| d.udid == device_udid) {
             device.is_running = is_running;
 
-            if let Some(ref mut cached) = self.cached_device_details {
-                if cached.identifier == device_udid {
-                    cached.status = if is_running {
-                        "Booted".to_string()
-                    } else {
-                        "Shutdown".to_string()
-                    };
-                }
+            if let Some(ref mut cached) = self.cached_device_details
+                && cached.identifier == device_udid
+            {
+                cached.status = if is_running {
+                    "Booted".to_string()
+                } else {
+                    "Shutdown".to_string()
+                };
             }
         }
     }

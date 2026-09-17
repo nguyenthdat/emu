@@ -8,11 +8,11 @@ use crate::{
     ui::Theme,
 };
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
-    Frame,
 };
 
 fn render_confirmation_dialog(

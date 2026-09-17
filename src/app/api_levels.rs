@@ -1,4 +1,4 @@
-use super::{state, App, Mode, Panel};
+use super::{App, Mode, Panel, state};
 use crate::constants::{
     messages::{
         errors::{CANNOT_SELECT_DURING_DOWNLOAD, CANNOT_SELECT_DURING_SYSTEM_IMAGE_OPERATION},
@@ -81,11 +81,11 @@ impl App {
         match key.code {
             KeyCode::Esc => {
                 let mut state = self.state.lock().await;
-                if let Some(ref api_mgmt) = state.api_level_management {
-                    if !api_mgmt.is_busy() {
-                        state.mode = Mode::Normal;
-                        state.api_level_management = None;
-                    }
+                if let Some(ref api_mgmt) = state.api_level_management
+                    && !api_mgmt.is_busy()
+                {
+                    state.mode = Mode::Normal;
+                    state.api_level_management = None;
                 }
             }
             KeyCode::Up | KeyCode::Char('k') => {

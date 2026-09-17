@@ -1,6 +1,6 @@
 use super::AndroidManager;
 use crate::constants::{env_vars, files, limits::SYSTEM_IMAGE_PARTS_REQUIRED};
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use std::path::{Path, PathBuf};
 
 impl AndroidManager {
@@ -89,12 +89,11 @@ impl AndroidManager {
 
         for image in installed_images {
             let parts: Vec<&str> = image.split(';').collect();
-            if parts.len() >= SYSTEM_IMAGE_PARTS_REQUIRED {
-                if let Some(android_part) = parts.get(1) {
-                    if android_part == &format!("android-{api_level}") {
-                        return Ok(Some((parts[2].to_string(), parts[3].to_string())));
-                    }
-                }
+            if parts.len() >= SYSTEM_IMAGE_PARTS_REQUIRED
+                && let Some(android_part) = parts.get(1)
+                && android_part == &format!("android-{api_level}")
+            {
+                return Ok(Some((parts[2].to_string(), parts[3].to_string())));
             }
         }
 

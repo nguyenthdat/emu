@@ -1,4 +1,4 @@
-use super::{state, App, AppState};
+use super::{App, AppState, state};
 use crate::models::error::format_user_error;
 use anyhow::Result;
 
@@ -153,22 +153,21 @@ impl App {
             }
             CreateDeviceField::ApiLevel => {
                 let options = &state.create_device_form.available_versions;
-                if !options.is_empty() {
-                    if let Some(current_index) = options
+                if !options.is_empty()
+                    && let Some(current_index) = options
                         .iter()
                         .position(|(value, _)| value == &state.create_device_form.version)
-                    {
-                        let new_index = if current_index == 0 {
-                            options.len() - 1
-                        } else {
-                            current_index - 1
-                        };
-                        let (value, display) = options[new_index].clone();
-                        state.create_device_form.version = value;
-                        state.create_device_form.version_display = display;
-                        state.create_device_form.selected_api_level_index = new_index;
-                        state.create_device_form.generate_placeholder_name();
-                    }
+                {
+                    let new_index = if current_index == 0 {
+                        options.len() - 1
+                    } else {
+                        current_index - 1
+                    };
+                    let (value, display) = options[new_index].clone();
+                    state.create_device_form.version = value;
+                    state.create_device_form.version_display = display;
+                    state.create_device_form.selected_api_level_index = new_index;
+                    state.create_device_form.generate_placeholder_name();
                 }
             }
             _ => {}
@@ -202,18 +201,17 @@ impl App {
             }
             CreateDeviceField::ApiLevel => {
                 let options = &state.create_device_form.available_versions;
-                if !options.is_empty() {
-                    if let Some(current_index) = options
+                if !options.is_empty()
+                    && let Some(current_index) = options
                         .iter()
                         .position(|(value, _)| value == &state.create_device_form.version)
-                    {
-                        let new_index = (current_index + 1) % options.len();
-                        let (value, display) = options[new_index].clone();
-                        state.create_device_form.version = value;
-                        state.create_device_form.version_display = display;
-                        state.create_device_form.selected_api_level_index = new_index;
-                        state.create_device_form.generate_placeholder_name();
-                    }
+                {
+                    let new_index = (current_index + 1) % options.len();
+                    let (value, display) = options[new_index].clone();
+                    state.create_device_form.version = value;
+                    state.create_device_form.version_display = display;
+                    state.create_device_form.selected_api_level_index = new_index;
+                    state.create_device_form.generate_placeholder_name();
                 }
             }
             _ => {}

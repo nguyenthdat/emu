@@ -277,7 +277,9 @@ impl AndroidManager {
             let available_images = self.list_available_system_images().await?;
             return Err(anyhow::anyhow!(
                 "System image '{}' not found. Install it with: sdkmanager \"{}\"\nAvailable images: {}",
-                package_path, package_path, available_images.join(", ")
+                package_path,
+                package_path,
+                available_images.join(", ")
             ));
         }
 
@@ -319,13 +321,10 @@ impl AndroidManager {
             .run(&self.avdmanager_path, &args)
             .await;
 
-        let result = if result.is_err() && skin_name.is_some() {
-            let error_str = result.as_ref().unwrap_err().to_string();
+        let result = if let (Err(err), Some(skin)) = (&result, &skin_name) {
+            let error_str = err.to_string();
             if error_str.to_lowercase().contains("skin") {
-                log::warn!(
-                    "Skin '{}' failed, retrying without skin",
-                    skin_name.as_ref().unwrap()
-                );
+                log::warn!("Skin '{skin}' failed, retrying without skin");
                 let mut fallback_args =
                     vec!["create", "avd", "-n", &safe_name, "-k", &package_path];
                 if let Some(ref device_id) = device_param {

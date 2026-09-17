@@ -810,7 +810,7 @@ fn test_system_limit_handling() {
 /// Test device priority and sorting
 #[test]
 fn test_device_priority_sorting() {
-    let mut devices = vec![
+    let mut devices = [
         AndroidDevice {
             android_version_name: "API 30".to_string(),
             name: "device_3".to_string(),

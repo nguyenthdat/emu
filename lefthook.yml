@@ -4,20 +4,22 @@
 pre-commit:
   parallel: false
   commands:
-    # Auto-format project files
-    format:
-      glob: "*.{rs,js,ts,md,json,yml,toml}"
-      run: bun run format
+    format-rs:
+      glob: "*.rs"
+      run: cargo fmt --all
       stage_fixed: true
 
-    # Run clippy linter
+    format-prettier:
+      glob: "*.{js,ts,md,json,yml,yaml}"
+      run: bun x prettier --write {staged_files}
+      stage_fixed: true
+
     clippy:
       glob: "*.rs"
-      run: bun run lint
+      run: cargo clippy --all-targets --all-features -- -D warnings
 
-# Optional: Run tests before push
 pre-push:
-  parallel: true
+  parallel: false
   commands:
     test:
-      run: bun run test
+      run: RUST_TEST_THREADS=1 cargo test --bins --tests --features test-utils

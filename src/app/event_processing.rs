@@ -104,10 +104,11 @@ impl EventDebouncer {
         }
 
         // Check if this is a duplicate event within debounce window
-        if let Some(ref last) = self.last_event {
-            if last == event && now.duration_since(self.last_event_time) < self.debounce_duration {
-                return false;
-            }
+        if let Some(ref last) = self.last_event
+            && last == event
+            && now.duration_since(self.last_event_time) < self.debounce_duration
+        {
+            return false;
         }
 
         // Update last event

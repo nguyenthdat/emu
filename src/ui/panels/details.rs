@@ -6,14 +6,14 @@ use crate::{
         ui_text::{architectures::*, progress::*},
     },
     models::Platform,
-    ui::{widgets::get_animated_moon, Theme},
+    ui::{Theme, widgets::get_animated_moon},
 };
 use ratatui::{
+    Frame,
     layout::{Alignment, Rect},
     style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Wrap},
-    Frame,
 };
 
 pub(crate) fn render_device_details_panel(
@@ -95,22 +95,22 @@ pub(crate) fn render_device_details_panel(
             ]));
         }
 
-        if details.platform == Platform::Android {
-            if let Some(ref sys_img) = details.system_image {
-                let architecture = if sys_img.contains("arm64") {
-                    ARM64
-                } else if sys_img.contains("x86_64") {
-                    X86_64
-                } else if sys_img.contains("x86") {
-                    X86
-                } else {
-                    UNKNOWN
-                };
-                lines.push(Line::from(vec![
-                    Span::raw("🔧 Arch: "),
-                    Span::styled(architecture, Style::default().fg(LOG_COLOR_VERBOSE)),
-                ]));
-            }
+        if details.platform == Platform::Android
+            && let Some(ref sys_img) = details.system_image
+        {
+            let architecture = if sys_img.contains("arm64") {
+                ARM64
+            } else if sys_img.contains("x86_64") {
+                X86_64
+            } else if sys_img.contains("x86") {
+                X86
+            } else {
+                UNKNOWN
+            };
+            lines.push(Line::from(vec![
+                Span::raw("🔧 Arch: "),
+                Span::styled(architecture, Style::default().fg(LOG_COLOR_VERBOSE)),
+            ]));
         }
 
         lines.push(Line::from(""));

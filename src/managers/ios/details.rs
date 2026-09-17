@@ -106,59 +106,59 @@ impl IosManager {
             for (runtime, device_list) in devices {
                 if let Some(devices_array) = device_list.as_array() {
                     for device in devices_array {
-                        if let Some(device_udid) = device.get("udid").and_then(|v| v.as_str()) {
-                            if device_udid == udid {
-                                let name = device
-                                    .get("name")
-                                    .and_then(|v| v.as_str())
-                                    .unwrap_or(UNKNOWN_VALUE)
-                                    .to_string();
+                        if let Some(device_udid) = device.get("udid").and_then(|v| v.as_str())
+                            && device_udid == udid
+                        {
+                            let name = device
+                                .get("name")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or(UNKNOWN_VALUE)
+                                .to_string();
 
-                                let state = device
-                                    .get("state")
-                                    .and_then(|v| v.as_str())
-                                    .unwrap_or(UNKNOWN_VALUE)
-                                    .to_string();
+                            let state = device
+                                .get("state")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or(UNKNOWN_VALUE)
+                                .to_string();
 
-                                let version = runtime
-                                    .replace("com.apple.CoreSimulator.SimRuntime.iOS-", "")
-                                    .replace("-", ".");
+                            let version = runtime
+                                .replace("com.apple.CoreSimulator.SimRuntime.iOS-", "")
+                                .replace("-", ".");
 
-                                let device_type = device
-                                    .get("deviceTypeIdentifier")
-                                    .and_then(|v| v.as_str())
-                                    .map(Self::parse_device_type_display_name)
-                                    .unwrap_or_else(|| "Unknown".to_string());
+                            let device_type = device
+                                .get("deviceTypeIdentifier")
+                                .and_then(|v| v.as_str())
+                                .map(Self::parse_device_type_display_name)
+                                .unwrap_or_else(|| "Unknown".to_string());
 
-                                let storage_size = device
-                                    .get("dataPathSize")
-                                    .and_then(|v| v.as_u64())
-                                    .map(|size| format!("{} MB", size / BYTES_PER_MB));
+                            let storage_size = device
+                                .get("dataPathSize")
+                                .and_then(|v| v.as_u64())
+                                .map(|size| format!("{} MB", size / BYTES_PER_MB));
 
-                                let device_path = device
-                                    .get("dataPath")
-                                    .and_then(|v| v.as_str())
-                                    .map(|s| s.to_string());
+                            let device_path = device
+                                .get("dataPath")
+                                .and_then(|v| v.as_str())
+                                .map(|s| s.to_string());
 
-                                let resolution = self.get_device_resolution(&device_type);
+                            let resolution = self.get_device_resolution(&device_type);
 
-                                device_details = Some(crate::models::DeviceDetails {
-                                    name: name.clone(),
-                                    status: state,
-                                    platform: crate::models::Platform::Ios,
-                                    device_type,
-                                    api_level_or_version: format!("iOS {version}"),
-                                    ram_size: None,
-                                    storage_size,
-                                    resolution,
-                                    dpi: Some(RETINA_DISPLAY.to_string()),
-                                    device_path,
-                                    system_image: None,
-                                    identifier: udid.to_string(),
-                                });
+                            device_details = Some(crate::models::DeviceDetails {
+                                name: name.clone(),
+                                status: state,
+                                platform: crate::models::Platform::Ios,
+                                device_type,
+                                api_level_or_version: format!("iOS {version}"),
+                                ram_size: None,
+                                storage_size,
+                                resolution,
+                                dpi: Some(RETINA_DISPLAY.to_string()),
+                                device_path,
+                                system_image: None,
+                                identifier: udid.to_string(),
+                            });
 
-                                break;
-                            }
+                            break;
                         }
                     }
                     if device_details.is_some() {

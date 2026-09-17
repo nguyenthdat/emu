@@ -71,7 +71,9 @@ async fn test_panel_switching_responsiveness() {
         "Panel switching average {avg_duration_ms}ms exceeds target {RESPONSIVENESS_TARGET_PANEL_SWITCH_MS}ms"
     );
 
-    println!("✅ Panel switching responsiveness: {avg_duration_ms}ms avg (target: <{RESPONSIVENESS_TARGET_PANEL_SWITCH_MS}ms)");
+    println!(
+        "✅ Panel switching responsiveness: {avg_duration_ms}ms avg (target: <{RESPONSIVENESS_TARGET_PANEL_SWITCH_MS}ms)"
+    );
 }
 
 /// Device navigation performance test
@@ -104,7 +106,9 @@ async fn test_device_navigation_performance() {
         "Device navigation average {avg_duration_ms}ms exceeds target {RESPONSIVENESS_TARGET_DEVICE_NAVIGATION_MS}ms"
     );
 
-    println!("✅ Device navigation performance: {avg_duration_ms}ms avg (target: <{RESPONSIVENESS_TARGET_DEVICE_NAVIGATION_MS}ms)");
+    println!(
+        "✅ Device navigation performance: {avg_duration_ms}ms avg (target: <{RESPONSIVENESS_TARGET_DEVICE_NAVIGATION_MS}ms)"
+    );
 }
 
 /// Screen update framerate test
@@ -143,7 +147,9 @@ async fn test_screen_update_framerate() {
 
         // Calculate framerate
         let fps = 1000.0 / avg_frame_time_ms as f64;
-        println!("✅ Screen update framerate: {avg_frame_time_ms}ms per frame ({fps:.1} FPS, target: <{RESPONSIVENESS_TARGET_SCREEN_UPDATE_MS}ms)");
+        println!(
+            "✅ Screen update framerate: {avg_frame_time_ms}ms per frame ({fps:.1} FPS, target: <{RESPONSIVENESS_TARGET_SCREEN_UPDATE_MS}ms)"
+        );
     }
 
     #[cfg(not(feature = "test-utils"))]
@@ -205,7 +211,9 @@ async fn test_120fps_keyboard_polling() {
         "120FPS polling average {avg_polling_time_ms}ms exceeds target {RESPONSIVENESS_TARGET_120FPS_POLLING_MS}ms"
     );
 
-    println!("✅ 120FPS keyboard polling: {avg_polling_time_ms}ms avg (target: <{RESPONSIVENESS_TARGET_120FPS_POLLING_MS}ms)");
+    println!(
+        "✅ 120FPS keyboard polling: {avg_polling_time_ms}ms avg (target: <{RESPONSIVENESS_TARGET_120FPS_POLLING_MS}ms)"
+    );
 }
 
 /// UI responsiveness test with large dataset
@@ -244,7 +252,10 @@ async fn test_large_dataset_ui_responsiveness() {
             "Large dataset UI responsiveness {avg_interaction_ms}ms exceeds target {RESPONSIVENESS_TARGET_SCREEN_UPDATE_MS}ms * 2"
         );
 
-        println!("✅ Large dataset UI responsiveness: {avg_interaction_ms}ms avg for 200 devices (target: <{}ms)", RESPONSIVENESS_TARGET_SCREEN_UPDATE_MS * 2);
+        println!(
+            "✅ Large dataset UI responsiveness: {avg_interaction_ms}ms avg for 200 devices (target: <{}ms)",
+            RESPONSIVENESS_TARGET_SCREEN_UPDATE_MS * 2
+        );
     }
 
     #[cfg(not(feature = "test-utils"))]
@@ -325,7 +336,9 @@ async fn test_scrolling_performance() {
             "Scrolling performance {avg_scroll_ms}ms exceeds target {RESPONSIVENESS_TARGET_SCREEN_UPDATE_MS}ms"
         );
 
-        println!("✅ Scrolling performance: {avg_scroll_ms}ms avg (target: <{RESPONSIVENESS_TARGET_SCREEN_UPDATE_MS}ms)");
+        println!(
+            "✅ Scrolling performance: {avg_scroll_ms}ms avg (target: <{RESPONSIVENESS_TARGET_SCREEN_UPDATE_MS}ms)"
+        );
     }
 
     #[cfg(not(feature = "test-utils"))]

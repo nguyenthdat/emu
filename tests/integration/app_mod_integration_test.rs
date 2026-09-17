@@ -12,7 +12,9 @@ use crate::common::setup_mock_android_sdk;
 #[tokio::test]
 async fn test_app_with_state_management() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let app_result = App::new().await;
 
@@ -42,7 +44,9 @@ async fn test_app_with_state_management() {
 #[tokio::test]
 async fn test_app_rapid_operations() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     for round in 0..5 {
         let start = std::time::Instant::now();
@@ -81,7 +85,9 @@ async fn test_app_rapid_operations() {
 #[tokio::test]
 async fn test_manager_coordination() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let app_result = App::new().await;
 
@@ -116,7 +122,9 @@ async fn test_manager_coordination() {
 #[tokio::test]
 async fn test_background_task_lifecycle() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let app_result = App::new().await;
 
@@ -152,7 +160,9 @@ async fn test_background_task_lifecycle() {
 #[tokio::test]
 async fn test_resource_management() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Test pattern: create, use briefly, drop
     for cycle in 0..3 {
@@ -190,7 +200,9 @@ async fn test_resource_management() {
 #[tokio::test]
 async fn test_cross_platform_paths() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let app_result = App::new().await;
 
@@ -223,7 +235,9 @@ async fn test_cross_platform_paths() {
 #[tokio::test]
 async fn test_error_propagation() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let app_result = App::new().await;
 
@@ -268,7 +282,9 @@ async fn test_error_propagation() {
 #[tokio::test]
 async fn test_concurrent_initialization() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Spawn multiple App::new() calls concurrently
     let concurrent_tasks = (0..3).map(|task_id| {
@@ -308,7 +324,9 @@ async fn test_concurrent_initialization() {
 #[tokio::test]
 async fn test_state_integration() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let app_result = App::new().await;
 
@@ -339,7 +357,9 @@ async fn test_state_integration() {
 #[tokio::test]
 async fn test_background_operations_initialization() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let app_result = App::new().await;
 
@@ -368,7 +388,9 @@ async fn test_background_operations_initialization() {
 #[tokio::test]
 async fn test_app_concurrent_access() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let app_result = App::new().await;
 
@@ -378,7 +400,9 @@ async fn test_app_concurrent_access() {
             let tasks = (0..5).map(|i| {
                 tokio::spawn(async move {
                     let _temp_dir = setup_mock_android_sdk();
-                    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+                    unsafe {
+                        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+                    }
 
                     // Simulate concurrent App::new() calls (like multi-instance)
                     let result = App::new().await;
@@ -417,7 +441,9 @@ async fn test_app_concurrent_access() {
 #[tokio::test]
 async fn test_app_initialization_conditions() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Test multiple initialization scenarios
     for attempt in 0..3 {
@@ -456,7 +482,9 @@ async fn test_app_initialization_conditions() {
 #[tokio::test]
 async fn test_app_memory_management() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Test that multiple App instances can be created and dropped without issues
     for iteration in 0..3 {
@@ -489,7 +517,9 @@ async fn test_app_memory_management() {
 #[tokio::test]
 async fn test_app_state_coordination() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let app_result = App::new().await;
 
@@ -517,7 +547,9 @@ async fn test_app_state_coordination() {
 #[tokio::test]
 async fn test_app_mock_simulation() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // This test simulates app behavior when SDK tools might not be available
     let app_result = App::new().await;

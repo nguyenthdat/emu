@@ -1,49 +1,45 @@
 //! Regular expression patterns for parsing command outputs.
 
-use lazy_static::lazy_static;
 use regex::Regex;
+use std::sync::LazyLock;
 
-lazy_static! {
-    /// Pattern to extract Android API level from config.ini
-    pub static ref API_LEVEL_CONFIG: Regex =
-        Regex::new(r"image\.sysdir\.1=system-images/android-(\d+)/?").unwrap();
+/// Pattern to extract Android API level from config.ini
+pub static API_LEVEL_CONFIG: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"image\.sysdir\.1=system-images/android-(\d+)/?").unwrap());
 
-    /// Pattern to extract target API level
-    pub static ref API_LEVEL_TARGET: Regex =
-        Regex::new(r"target=android-(\d+)").unwrap();
+/// Pattern to extract target API level
+pub static API_LEVEL_TARGET: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"target=android-(\d+)").unwrap());
 
-    /// Pattern to extract API level from avdmanager output
-    pub static ref API_LEVEL_BASED_ON: Regex =
-        Regex::new(r"Based on:\s*Android\s*([\d.]+)").unwrap();
+/// Pattern to extract API level from avdmanager output
+pub static API_LEVEL_BASED_ON: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Based on:\s*Android\s*([\d.]+)").unwrap());
 
-    /// Generic API level pattern
-    pub static ref API_LEVEL_GENERIC: Regex =
-        Regex::new(r"(?:API level |android-)(\d+)").unwrap();
+/// Generic API level pattern
+pub static API_LEVEL_GENERIC: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?:API level |android-)(\d+)").unwrap());
 
-    /// Pattern to extract device/AVD name
-    pub static ref NAME_PATTERN: Regex =
-        Regex::new(r"Name:\s*(.+)").unwrap();
+/// Pattern to extract device/AVD name
+pub static NAME_PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"Name:\s*(.+)").unwrap());
 
-    /// Pattern to extract path
-    pub static ref PATH_PATTERN: Regex =
-        Regex::new(r"Path:\s*(.+)").unwrap();
+/// Pattern to extract path
+pub static PATH_PATTERN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"Path:\s*(.+)").unwrap());
 
-    /// Pattern to extract target information
-    pub static ref TARGET_PATTERN: Regex =
-        Regex::new(r"Target:\s*(.+)").unwrap();
+/// Pattern to extract target information
+pub static TARGET_PATTERN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Target:\s*(.+)").unwrap());
 
-    /// Pattern to extract Tag/ABI
-    pub static ref TAG_ABI_PATTERN: Regex =
-        Regex::new(r"Tag/ABI:\s*(.+)").unwrap();
+/// Pattern to extract Tag/ABI
+pub static TAG_ABI_PATTERN: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Tag/ABI:\s*(.+)").unwrap());
 
-    /// Pattern to extract emulator serial
-    pub static ref EMULATOR_SERIAL: Regex =
-        Regex::new(r"emulator-\d+").unwrap();
+/// Pattern to extract emulator serial
+pub static EMULATOR_SERIAL: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"emulator-\d+").unwrap());
 
-    /// Pattern to parse system image package format
-    pub static ref SYSTEM_IMAGE_PACKAGE: Regex =
-        Regex::new(r"system-images;android-(\d+);([^;]+);([^;]+)").unwrap();
-}
+/// Pattern to parse system image package format
+pub static SYSTEM_IMAGE_PACKAGE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"system-images;android-(\d+);([^;]+);([^;]+)").unwrap());
 
 /// Pattern for validating device names
 pub const DEVICE_NAME_PATTERN: &str = r"^[a-zA-Z0-9_.-]+$";

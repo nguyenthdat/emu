@@ -68,13 +68,12 @@ impl FixtureAndroidManager {
                     }
                 }
             } else if trimmed.starts_with("Based on: Android") && current_device.is_some() {
-                if let Some(ref mut device) = current_device {
-                    if let Some(api_start) = trimmed.find("(API level ") {
-                        if let Some(api_end) = trimmed[api_start..].find(')') {
-                            let api_str = &trimmed[api_start + 11..api_start + api_end];
-                            device.api_level = api_str.parse().unwrap_or(30);
-                        }
-                    }
+                if let Some(ref mut device) = current_device
+                    && let Some(api_start) = trimmed.find("(API level ")
+                    && let Some(api_end) = trimmed[api_start..].find(')')
+                {
+                    let api_str = &trimmed[api_start + 11..api_start + api_end];
+                    device.api_level = api_str.parse().unwrap_or(30);
                 }
             } else if trimmed == "---------" && current_device.is_some() {
                 devices.push(current_device.take().unwrap());

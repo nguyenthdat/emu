@@ -14,14 +14,14 @@ use crate::{
             },
         },
     },
-    ui::{widgets::get_animated_moon, Theme},
+    ui::{Theme, widgets::get_animated_moon},
 };
 use ratatui::{
+    Frame,
     layout::{Alignment, Rect},
     style::{Modifier, Style},
     text::Line,
     widgets::Paragraph,
-    Frame,
 };
 
 pub(crate) fn render_device_commands(

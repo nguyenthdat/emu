@@ -26,7 +26,9 @@ use crate::common::setup_mock_android_sdk;
 #[tokio::test]
 async fn test_android_manager_initialization() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new();
     let manager = AndroidManager::with_executor(Arc::new(mock_executor));
@@ -47,7 +49,9 @@ async fn test_android_manager_initialization() {
 #[tokio::test]
 async fn test_android_manager_list_devices_concurrent() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
     let adb_path = _temp_dir.path().join("platform-tools/adb");
@@ -122,7 +126,9 @@ async fn test_android_manager_list_devices_concurrent() {
 #[tokio::test]
 async fn test_android_manager_performance() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
     let adb_path = _temp_dir.path().join("platform-tools/adb");
@@ -188,7 +194,9 @@ async fn test_android_manager_memory_usage() {
     // Create and drop multiple manager instances
     for _ in 0..10 {
         let _temp_dir = setup_mock_android_sdk();
-        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+        unsafe {
+            std::env::set_var("ANDROID_HOME", _temp_dir.path());
+        }
 
         let mock_executor = MockCommandExecutor::new();
         let manager_result = AndroidManager::with_executor(Arc::new(mock_executor));
@@ -212,7 +220,9 @@ async fn test_android_manager_memory_usage() {
 #[tokio::test]
 async fn test_android_manager_async_behavior() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
     let adb_path = _temp_dir.path().join("platform-tools/adb");
@@ -273,7 +283,9 @@ async fn test_android_manager_async_behavior() {
 #[tokio::test]
 async fn test_android_manager_device_validation() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
     let adb_path = _temp_dir.path().join("platform-tools/adb");
@@ -343,7 +355,9 @@ async fn test_android_manager_device_validation() {
 #[tokio::test]
 async fn test_android_manager_basic_operations() -> Result<()> {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
     let adb_path = _temp_dir.path().join("platform-tools/adb");
@@ -379,7 +393,9 @@ async fn test_android_manager_basic_operations() -> Result<()> {
 #[tokio::test]
 async fn test_get_running_avd_names() -> Result<()> {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let adb_path = _temp_dir.path().join("platform-tools/adb");
 
@@ -404,7 +420,9 @@ async fn test_get_running_avd_names() -> Result<()> {
 #[tokio::test]
 async fn test_list_available_targets() -> Result<()> {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
 
@@ -436,7 +454,9 @@ async fn test_list_available_targets() -> Result<()> {
 #[tokio::test]
 async fn test_list_available_devices() -> Result<()> {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
 
@@ -470,7 +490,9 @@ async fn test_list_available_devices() -> Result<()> {
 #[tokio::test]
 async fn test_device_category_detection() -> Result<()> {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new();
     let manager = AndroidManager::with_executor(Arc::new(mock_executor))?;
@@ -498,7 +520,9 @@ async fn test_device_category_detection() -> Result<()> {
 #[tokio::test]
 async fn test_check_system_image_available() -> Result<()> {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let sdkmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/sdkmanager");
 
@@ -535,7 +559,9 @@ async fn test_check_system_image_available() -> Result<()> {
 #[tokio::test]
 async fn test_list_available_system_images() -> Result<()> {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let sdkmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/sdkmanager");
 
@@ -568,7 +594,9 @@ async fn test_list_available_system_images() -> Result<()> {
 #[tokio::test]
 async fn test_get_first_available_system_image() -> Result<()> {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let sdkmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/sdkmanager");
 
@@ -601,7 +629,9 @@ async fn test_get_first_available_system_image() -> Result<()> {
 #[tokio::test]
 async fn test_list_api_levels() -> Result<()> {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
 
@@ -635,7 +665,9 @@ async fn test_list_api_levels() -> Result<()> {
 #[tokio::test]
 async fn test_concurrent_operations() -> Result<()> {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
     let adb_path = _temp_dir.path().join("platform-tools/adb");
@@ -681,7 +713,9 @@ async fn test_concurrent_operations() -> Result<()> {
 #[tokio::test]
 async fn test_error_handling() -> Result<()> {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
     let adb_path = _temp_dir.path().join("platform-tools/adb");

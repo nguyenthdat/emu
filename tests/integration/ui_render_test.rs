@@ -5,14 +5,14 @@
 
 #![cfg(feature = "test-utils")]
 
-use emu::app::state::AppState;
 use emu::app::Panel;
+use emu::app::state::AppState;
 use emu::models::device::{AndroidDevice, DeviceStatus, IosDevice};
+use emu::ui::MockBackend;
 use emu::ui::render::draw_app;
 use emu::ui::theme::Theme;
-use emu::ui::MockBackend;
-use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::Terminal;
+use ratatui::layout::{Constraint, Direction, Layout};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 

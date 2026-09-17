@@ -292,8 +292,12 @@ fn test_parse_device_name() {
 
         // Should contain expected parts (order may vary)
         for expected_part in expected_parts {
-            assert!(parsed.iter().any(|part| part.contains(expected_part) || expected_part.contains(part)),
-                    "Parsed name should contain '{expected_part}' for device '{device_type}': {parsed:?}");
+            assert!(
+                parsed
+                    .iter()
+                    .any(|part| part.contains(expected_part) || expected_part.contains(part)),
+                "Parsed name should contain '{expected_part}' for device '{device_type}': {parsed:?}"
+            );
         }
     }
 }

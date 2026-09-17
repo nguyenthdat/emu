@@ -14,7 +14,9 @@ async fn test_device_creation_flow() {
     println!("🔍 Testing device creation flow...");
 
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
 
@@ -120,7 +122,9 @@ async fn test_android_manager_basic_operations() {
     println!("🔧 Testing basic AndroidManager operations...");
 
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new();
     let android_manager = match AndroidManager::with_executor(Arc::new(mock_executor)) {

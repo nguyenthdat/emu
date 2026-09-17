@@ -48,29 +48,28 @@ impl<'a> AvdListParser<'a> {
                     ));
                 }
             } else if let Some(captures) = PATH_REGEX.captures(trimmed_line) {
-                if let Some(path) = captures.get(1) {
-                    if let Some(ref mut info) = self.current_device_info {
-                        info.1 = path.as_str().to_string();
-                    }
+                if let Some(path) = captures.get(1)
+                    && let Some(ref mut info) = self.current_device_info
+                {
+                    info.1 = path.as_str().to_string();
                 }
             } else if let Some(captures) = TARGET_REGEX.captures(trimmed_line) {
-                if let Some(target) = captures.get(1) {
-                    if let Some(ref mut info) = self.current_device_info {
-                        info.2 = target.as_str().to_string();
-                    }
+                if let Some(target) = captures.get(1)
+                    && let Some(ref mut info) = self.current_device_info
+                {
+                    info.2 = target.as_str().to_string();
                 }
             } else if let Some(captures) = ABI_REGEX.captures(trimmed_line) {
-                if let Some(abi) = captures.get(1) {
-                    if let Some(ref mut info) = self.current_device_info {
-                        info.3 = abi.as_str().to_string();
-                    }
+                if let Some(abi) = captures.get(1)
+                    && let Some(ref mut info) = self.current_device_info
+                {
+                    info.3 = abi.as_str().to_string();
                 }
-            } else if let Some(captures) = DEVICE_REGEX.captures(trimmed_line) {
-                if let Some(device) = captures.get(1) {
-                    if let Some(ref mut info) = self.current_device_info {
-                        info.4 = device.as_str().to_string();
-                    }
-                }
+            } else if let Some(captures) = DEVICE_REGEX.captures(trimmed_line)
+                && let Some(device) = captures.get(1)
+                && let Some(ref mut info) = self.current_device_info
+            {
+                info.4 = device.as_str().to_string();
             }
         }
 

@@ -6,7 +6,7 @@
 use emu::app::{AppState, Mode, Panel};
 use emu::models::{AndroidDevice, DeviceStatus, IosDevice};
 use emu::ui::Theme;
-use ratatui::{backend::TestBackend, Terminal};
+use ratatui::{Terminal, backend::TestBackend};
 
 /// Terminal setup for testing
 fn setup_test_terminal() -> Terminal<TestBackend> {

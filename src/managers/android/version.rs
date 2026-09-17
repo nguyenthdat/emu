@@ -35,33 +35,31 @@ impl AndroidManager {
     pub(super) async fn get_dynamic_android_version_name(&self, api_level: u32) -> Option<String> {
         if let Ok(targets) = self.list_available_targets().await {
             for (level_str, display) in targets {
-                if let Ok(level) = level_str.parse::<u32>() {
-                    if level == api_level {
-                        if let Some(dash_pos) = display.find(" - Android ") {
-                            return Some(display[dash_pos + 11..].to_string());
-                        }
-                    }
+                if let Ok(level) = level_str.parse::<u32>()
+                    && level == api_level
+                    && let Some(dash_pos) = display.find(" - Android ")
+                {
+                    return Some(display[dash_pos + 11..].to_string());
                 }
             }
         }
 
-        if let Ok(sdkmanager_path) = Self::find_tool(&self.android_home, commands::SDKMANAGER) {
-            if let Ok(output) = self
+        if let Ok(sdkmanager_path) = Self::find_tool(&self.android_home, commands::SDKMANAGER)
+            && let Ok(output) = self
                 .command_executor
                 .run(&sdkmanager_path, &[commands::sdkmanager::LIST])
                 .await
-            {
-                let package_name = format!("platforms;android-{api_level}");
-                let pattern = format!(r"{package_name}\s*\|");
-                if let Ok(regex) = Regex::new(&pattern) {
-                    for line in output.lines() {
-                        if regex.is_match(line) {
-                            if let Some((_, version_name)) = line.rsplit_once("| Android ") {
-                                let version_name = version_name.trim();
-                                if !version_name.is_empty() {
-                                    return Some(version_name.to_string());
-                                }
-                            }
+        {
+            let package_name = format!("platforms;android-{api_level}");
+            let pattern = format!(r"{package_name}\s*\|");
+            if let Ok(regex) = Regex::new(&pattern) {
+                for line in output.lines() {
+                    if regex.is_match(line)
+                        && let Some((_, version_name)) = line.rsplit_once("| Android ")
+                    {
+                        let version_name = version_name.trim();
+                        if !version_name.is_empty() {
+                            return Some(version_name.to_string());
                         }
                     }
                 }

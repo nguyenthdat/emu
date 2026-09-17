@@ -14,7 +14,7 @@ const MEMORY_LEAK_DETECTION_CYCLES: usize = 100;
 const CACHE_PERFORMANCE_TARGET_MS: u64 = 650;
 const CACHE_PERFORMANCE_SAMPLE_COUNT: usize = 3;
 
-use crate::common::{acquire_test_env_lock, setup_mock_android_sdk, EnvVarGuard};
+use crate::common::{EnvVarGuard, acquire_test_env_lock, setup_mock_android_sdk};
 
 /// Memory efficiency benchmark
 #[tokio::test]
@@ -60,13 +60,13 @@ async fn test_memory_efficiency_benchmark() {
         assert_eq!(devices.len(), device_count);
 
         // Memory efficiency verification
-        let devices_per_mb = if memory_used > 0 {
-            device_count / memory_used
-        } else {
-            device_count // When memory usage cannot be measured
-        };
+        let devices_per_mb = device_count
+            .checked_div(memory_used)
+            .unwrap_or(device_count);
 
-        println!("  📱 {device_count} devices: {load_duration:?}, ~{memory_used}MB used, ~{devices_per_mb} devices/MB");
+        println!(
+            "  📱 {device_count} devices: {load_duration:?}, ~{memory_used}MB used, ~{devices_per_mb} devices/MB"
+        );
 
         // Performance requirements
         assert!(
@@ -141,7 +141,9 @@ async fn test_memory_leak_detection() {
     let final_memory = get_memory_usage_estimate();
     let total_growth = final_memory.saturating_sub(initial_memory);
 
-    println!("  📊 Final: {final_memory}MB (+{total_growth}MB growth over {MEMORY_LEAK_DETECTION_CYCLES} cycles)");
+    println!(
+        "  📊 Final: {final_memory}MB (+{total_growth}MB growth over {MEMORY_LEAK_DETECTION_CYCLES} cycles)"
+    );
 
     // Leak detection criterion: 50MB+ growth over 100 cycles is abnormal
     assert!(
@@ -248,7 +250,9 @@ async fn test_large_dataset_memory_efficiency() {
         }
         let access_duration = access_start.elapsed();
 
-        println!("  📱 {device_count} devices: ~{stage_memory_used}MB used, 100 random accesses in {access_duration:?}");
+        println!(
+            "  📱 {device_count} devices: ~{stage_memory_used}MB used, 100 random accesses in {access_duration:?}"
+        );
 
         // Access performance requirement (fast access even with large data)
         assert!(
@@ -444,7 +448,9 @@ async fn test_memory_fragmentation_detection() {
         if iteration % 10 == 0 {
             let current_memory = get_memory_usage_estimate();
             let memory_growth = current_memory.saturating_sub(initial_memory);
-            println!("  Iteration {iteration}: {allocation_duration:?} allocation, ~{memory_growth}MB total");
+            println!(
+                "  Iteration {iteration}: {allocation_duration:?} allocation, ~{memory_growth}MB total"
+            );
         }
     }
 
@@ -532,7 +538,9 @@ async fn test_long_running_memory_stability() {
     let final_memory = get_memory_usage_estimate();
     let total_growth = final_memory.saturating_sub(initial_memory);
 
-    println!("  📊 {operation_count} operations in {stability_duration:?}: +{total_growth}MB memory growth");
+    println!(
+        "  📊 {operation_count} operations in {stability_duration:?}: +{total_growth}MB memory growth"
+    );
 
     // Memory usage stable even during long runs
     assert!(

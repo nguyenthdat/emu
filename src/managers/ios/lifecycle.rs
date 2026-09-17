@@ -12,7 +12,7 @@ use crate::constants::{
 #[cfg(target_os = "macos")]
 use crate::managers::common::DeviceConfig;
 #[cfg(target_os = "macos")]
-use crate::models::{device_info::DynamicDeviceConfig, IosDevice};
+use crate::models::{IosDevice, device_info::DynamicDeviceConfig};
 #[cfg(target_os = "macos")]
 use anyhow::{Context, Result};
 #[cfg(target_os = "macos")]
@@ -65,25 +65,25 @@ impl IosManager {
             serde_json::from_str(&output).context("Failed to parse simctl JSON output")?;
 
         let mut devices = Vec::new();
-        if let Some(devices_obj) = json.get("devices") {
-            if let Some(devices_map) = devices_obj.as_object() {
-                let mut raw_devices = Vec::new();
+        if let Some(devices_obj) = json.get("devices")
+            && let Some(devices_map) = devices_obj.as_object()
+        {
+            let mut raw_devices = Vec::new();
 
-                for (runtime, device_list_json) in devices_map {
-                    if let Some(device_array_json) = device_list_json.as_array() {
-                        for device_json_val in device_array_json {
-                            raw_devices.push((device_json_val, runtime));
-                        }
+            for (runtime, device_list_json) in devices_map {
+                if let Some(device_array_json) = device_list_json.as_array() {
+                    for device_json_val in device_array_json {
+                        raw_devices.push((device_json_val, runtime));
                     }
                 }
+            }
 
-                for batch in raw_devices.chunks(IOS_DEVICE_PARSE_BATCH_SIZE) {
-                    for (device_json_val, runtime) in batch {
-                        if let Some(parsed_device) =
-                            self.parse_device_from_json(device_json_val, runtime)?
-                        {
-                            devices.push(parsed_device);
-                        }
+            for batch in raw_devices.chunks(IOS_DEVICE_PARSE_BATCH_SIZE) {
+                for (device_json_val, runtime) in batch {
+                    if let Some(parsed_device) =
+                        self.parse_device_from_json(device_json_val, runtime)?
+                    {
+                        devices.push(parsed_device);
                     }
                 }
             }
@@ -115,15 +115,13 @@ impl IosManager {
             for (_, device_list) in devices {
                 if let Some(devices_array) = device_list.as_array() {
                     for device in devices_array {
-                        if let Some(udid) = device.get("udid").and_then(|v| v.as_str()) {
-                            if udid == identifier {
-                                if let Some(state) = device.get("state").and_then(|v| v.as_str()) {
-                                    if state == IOS_DEVICE_STATUS_BOOTED {
-                                        is_already_booted = true;
-                                        break;
-                                    }
-                                }
-                            }
+                        if let Some(udid) = device.get("udid").and_then(|v| v.as_str())
+                            && udid == identifier
+                            && let Some(state) = device.get("state").and_then(|v| v.as_str())
+                            && state == IOS_DEVICE_STATUS_BOOTED
+                        {
+                            is_already_booted = true;
+                            break;
                         }
                     }
                 }
@@ -159,7 +157,9 @@ impl IosManager {
             )
             .await
         {
-            log::warn!("Failed to open Simulator app: {e}. Device might be booting in headless mode or Simulator app needs to be opened manually.");
+            log::warn!(
+                "Failed to open Simulator app: {e}. Device might be booting in headless mode or Simulator app needs to be opened manually."
+            );
         }
 
         Ok(())

@@ -15,7 +15,7 @@ use emu::managers::ios::IosManager;
 #[cfg(target_os = "macos")]
 use emu::models::IosDevice;
 
-use crate::common::{acquire_test_env_lock, setup_mock_android_sdk, EnvVarGuard};
+use crate::common::{EnvVarGuard, acquire_test_env_lock, setup_mock_android_sdk};
 
 /// Test in mixed environment with Android and iOS devices
 #[tokio::test]

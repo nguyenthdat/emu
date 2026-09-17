@@ -77,9 +77,11 @@ async fn test_ios_manager_non_macos_operations_disabled() {
 
     let _manager = IosManager::new().expect("Failed to create IosManager");
 
-    assert!(<IosManager as DeviceManager>::list_devices(&_manager)
-        .await
-        .is_err());
+    assert!(
+        <IosManager as DeviceManager>::list_devices(&_manager)
+            .await
+            .is_err()
+    );
     assert!(
         <IosManager as DeviceManager>::start_device(&_manager, "test")
             .await

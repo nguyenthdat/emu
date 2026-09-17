@@ -71,7 +71,7 @@ pub trait DeviceManager {
     /// * `Ok(())` - If device stops successfully or was already stopped
     /// * `Err(anyhow::Error)` - If stop operation fails
     fn stop_device(&self, identifier: &str)
-        -> impl std::future::Future<Output = Result<()>> + Send;
+    -> impl std::future::Future<Output = Result<()>> + Send;
 
     /// Creates a new virtual device with the specified configuration.
     ///
@@ -117,7 +117,7 @@ pub trait DeviceManager {
     /// * `Ok(())` - If device wipe succeeds
     /// * `Err(anyhow::Error)` - If wipe operation fails
     fn wipe_device(&self, identifier: &str)
-        -> impl std::future::Future<Output = Result<()>> + Send;
+    -> impl std::future::Future<Output = Result<()>> + Send;
 
     /// Checks if the platform's development tools are available.
     ///

@@ -28,7 +28,7 @@ use emu::constants::{
     env_vars::{ANDROID_AVD_VERBOSE, ANDROID_EMULATOR_LOG_ENABLE, ANDROID_VERBOSE},
     messages::checks,
 };
-use emu::managers::{common::DeviceManager, AndroidManager, IosManager};
+use emu::managers::{AndroidManager, IosManager, common::DeviceManager};
 
 /// Command line arguments for the Emu application.
 ///
@@ -99,9 +99,12 @@ async fn main() -> Result<()> {
     } else {
         // Suppress Android emulator verbose output in normal TUI mode
         // These environment variables control Android SDK tool verbosity
-        std::env::set_var(ANDROID_EMULATOR_LOG_ENABLE, ANDROID_LOGGING_DISABLED_VALUE);
-        std::env::set_var(ANDROID_AVD_VERBOSE, ANDROID_LOGGING_DISABLED_VALUE);
-        std::env::set_var(ANDROID_VERBOSE, ANDROID_LOGGING_DISABLED_VALUE);
+        // SAFETY: Called during single-threaded startup before any worker threads are spawned.
+        unsafe {
+            std::env::set_var(ANDROID_EMULATOR_LOG_ENABLE, ANDROID_LOGGING_DISABLED_VALUE);
+            std::env::set_var(ANDROID_AVD_VERBOSE, ANDROID_LOGGING_DISABLED_VALUE);
+            std::env::set_var(ANDROID_VERBOSE, ANDROID_LOGGING_DISABLED_VALUE);
+        }
     }
 
     if cli.check {
@@ -172,9 +175,9 @@ async fn run_local_check() -> Result<()> {
 async fn run_tui() -> Result<()> {
     use crossterm::{
         execute,
-        terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+        terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
     };
-    use ratatui::{backend::CrosstermBackend, Terminal};
+    use ratatui::{Terminal, backend::CrosstermBackend};
     use std::io;
 
     // Configure terminal for TUI mode

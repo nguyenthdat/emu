@@ -22,10 +22,10 @@ use crate::{
     ui::Theme,
 };
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Modifier, Style},
     widgets::{Block, Borders, Paragraph},
-    Frame,
 };
 
 pub fn draw_app(frame: &mut Frame, state: &mut AppState, theme: &Theme) {

@@ -128,10 +128,12 @@ async fn test_cache_population_to_form() {
     app_state.populate_form_from_cache(Panel::Android).await;
 
     // Verify that data has been set to form
-    assert!(!app_state
-        .create_device_form
-        .available_device_types
-        .is_empty());
+    assert!(
+        !app_state
+            .create_device_form
+            .available_device_types
+            .is_empty()
+    );
     assert!(!app_state.create_device_form.available_versions.is_empty());
     assert!(!app_state.create_device_form.is_loading_cache);
 

@@ -424,8 +424,10 @@ mod tests {
 
         // Test start device
         manager.start_device("emulator-5554").await.unwrap();
-        assert!(manager
-            .assert_operation_called(&MockOperation::StartDevice("emulator-5554".to_string())));
+        assert!(
+            manager
+                .assert_operation_called(&MockOperation::StartDevice("emulator-5554".to_string()))
+        );
 
         // Verify device status changed
         let devices = manager.list_devices().await.unwrap();

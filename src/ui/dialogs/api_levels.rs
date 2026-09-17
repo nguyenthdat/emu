@@ -8,13 +8,13 @@ use crate::{
         },
         ui_text::{api_management::*, progress::*},
     },
-    ui::{widgets::get_animated_moon, Theme},
+    ui::{Theme, widgets::get_animated_moon},
 };
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Modifier, Style},
     widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
-    Frame,
 };
 
 pub(crate) fn render_api_level_dialog(frame: &mut Frame, state: &AppState, theme: &Theme) {

@@ -10,8 +10,8 @@ use emu::{
         env_vars::{ANDROID_HOME, ANDROID_SDK_ROOT},
     },
     managers::{
-        common::{DeviceConfig, DeviceManager},
         AndroidManager,
+        common::{DeviceConfig, DeviceManager},
     },
 };
 
@@ -38,7 +38,9 @@ async fn main() -> Result<()> {
         Ok(images) => {
             if images.is_empty() {
                 println!("⚠ No system images found. You may need to install some system images.");
-                println!("  Example: sdkmanager \"system-images;android-34;google_apis_playstore;arm64-v8a\"");
+                println!(
+                    "  Example: sdkmanager \"system-images;android-34;google_apis_playstore;arm64-v8a\""
+                );
             } else {
                 let count = images.len();
                 println!("✓ Found {count} system images:");

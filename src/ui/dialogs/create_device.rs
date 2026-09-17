@@ -1,16 +1,16 @@
 use crate::{
-    app::{state::CreateDeviceField, AppState, Panel},
+    app::{AppState, Panel, state::CreateDeviceField},
     constants::{
         colors::*,
         ui_layout::{DIALOG_HEIGHT_MEDIUM, DIALOG_WIDTH_MEDIUM, FORM_LABEL_WIDTH},
     },
-    ui::{widgets::get_animated_moon, Theme},
+    ui::{Theme, widgets::get_animated_moon},
 };
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
     widgets::{Block, Borders, Clear, Paragraph},
-    Frame,
 };
 
 fn render_input_field(

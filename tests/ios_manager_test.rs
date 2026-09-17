@@ -5,8 +5,8 @@
 use emu::{
     managers::{common::DeviceManager, ios::IosManager},
     models::{
-        device::{DeviceStatus, IosDevice},
         Platform,
+        device::{DeviceStatus, IosDevice},
     },
     utils::command_executor::mock::MockCommandExecutor,
 };
@@ -357,8 +357,10 @@ async fn test_ios_manager_list_device_types() {
     assert!(
         device_types.contains(&"com.apple.CoreSimulator.SimDeviceType.iPhone-15-Pro".to_string())
     );
-    assert!(device_types
-        .contains(&"com.apple.CoreSimulator.SimDeviceType.iPad-Air-5th-generation".to_string()));
+    assert!(
+        device_types
+            .contains(&"com.apple.CoreSimulator.SimDeviceType.iPad-Air-5th-generation".to_string())
+    );
     assert!(device_types.contains(&"com.apple.CoreSimulator.SimDeviceType.iPhone-14".to_string()));
 }
 
@@ -515,10 +517,12 @@ async fn test_ios_manager_command_failure() {
     let result = manager.list_devices().await;
 
     assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("Failed to list iOS devices"));
+    assert!(
+        result
+            .unwrap_err()
+            .to_string()
+            .contains("Failed to list iOS devices")
+    );
 }
 
 #[cfg(target_os = "macos")]

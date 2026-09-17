@@ -136,14 +136,13 @@ impl AndroidManager {
 
         for image in installed_images {
             let parts: Vec<&str> = image.split(';').collect();
-            if parts.len() >= SYSTEM_IMAGE_PARTS_REQUIRED {
-                if let Some(api_level) = parts.get(1).and_then(|part| part.strip_prefix("android-"))
-                {
-                    let api_num: u32 = api_level.parse().unwrap_or(0);
-                    let android_version = self.get_android_version_name(api_num);
-                    let display = format!("API {api_level} - {android_version}");
-                    targets.insert(api_level.to_string(), display);
-                }
+            if parts.len() >= SYSTEM_IMAGE_PARTS_REQUIRED
+                && let Some(api_level) = parts.get(1).and_then(|part| part.strip_prefix("android-"))
+            {
+                let api_num: u32 = api_level.parse().unwrap_or(0);
+                let android_version = self.get_android_version_name(api_num);
+                let display = format!("API {api_level} - {android_version}");
+                targets.insert(api_level.to_string(), display);
             }
         }
 
@@ -364,18 +363,17 @@ impl AndroidManager {
             }
 
             let platforms_dir = android_path.join("platforms");
-            if platforms_dir.exists() {
-                if let Ok(mut platform_entries) = fs::read_dir(&platforms_dir).await {
-                    while let Some(platform_entry) =
-                        platform_entries.next_entry().await.ok().flatten()
+            if platforms_dir.exists()
+                && let Ok(mut platform_entries) = fs::read_dir(&platforms_dir).await
+            {
+                while let Some(platform_entry) = platform_entries.next_entry().await.ok().flatten()
+                {
+                    if let Ok(file_type) = platform_entry.file_type().await
+                        && file_type.is_dir()
                     {
-                        if let Ok(file_type) = platform_entry.file_type().await {
-                            if file_type.is_dir() {
-                                let platform_skins = platform_entry.path().join("skins");
-                                if platform_skins.exists() {
-                                    self.scan_skin_directory(&platform_skins, &mut skins).await;
-                                }
-                            }
+                        let platform_skins = platform_entry.path().join("skins");
+                        if platform_skins.exists() {
+                            self.scan_skin_directory(&platform_skins, &mut skins).await;
                         }
                     }
                 }
@@ -403,12 +401,11 @@ impl AndroidManager {
     async fn scan_skin_directory(&self, skin_dir: &std::path::Path, skins: &mut Vec<String>) {
         if let Ok(mut entries) = fs::read_dir(skin_dir).await {
             while let Some(entry) = entries.next_entry().await.ok().flatten() {
-                if let Ok(file_type) = entry.file_type().await {
-                    if file_type.is_dir() {
-                        if let Some(skin_name) = entry.file_name().to_str() {
-                            skins.push(skin_name.to_string());
-                        }
-                    }
+                if let Ok(file_type) = entry.file_type().await
+                    && file_type.is_dir()
+                    && let Some(skin_name) = entry.file_name().to_str()
+                {
+                    skins.push(skin_name.to_string());
                 }
             }
         }
@@ -421,32 +418,26 @@ impl AndroidManager {
     ) {
         if let Ok(mut api_entries) = fs::read_dir(system_images_dir).await {
             while let Some(api_entry) = api_entries.next_entry().await.ok().flatten() {
-                if let Ok(file_type) = api_entry.file_type().await {
-                    if file_type.is_dir() {
-                        let api_dir = api_entry.path();
-                        if let Ok(mut tag_entries) = fs::read_dir(&api_dir).await {
-                            while let Some(tag_entry) =
-                                tag_entries.next_entry().await.ok().flatten()
+                if let Ok(file_type) = api_entry.file_type().await
+                    && file_type.is_dir()
+                {
+                    let api_dir = api_entry.path();
+                    if let Ok(mut tag_entries) = fs::read_dir(&api_dir).await {
+                        while let Some(tag_entry) = tag_entries.next_entry().await.ok().flatten() {
+                            if let Ok(file_type) = tag_entry.file_type().await
+                                && file_type.is_dir()
                             {
-                                if let Ok(file_type) = tag_entry.file_type().await {
-                                    if file_type.is_dir() {
-                                        let tag_dir = tag_entry.path();
-                                        if let Ok(mut abi_entries) = fs::read_dir(&tag_dir).await {
-                                            while let Some(abi_entry) =
-                                                abi_entries.next_entry().await.ok().flatten()
-                                            {
-                                                if let Ok(file_type) = abi_entry.file_type().await {
-                                                    if file_type.is_dir() {
-                                                        let skins_dir =
-                                                            abi_entry.path().join("skins");
-                                                        if skins_dir.exists() {
-                                                            self.scan_skin_directory(
-                                                                &skins_dir, skins,
-                                                            )
-                                                            .await;
-                                                        }
-                                                    }
-                                                }
+                                let tag_dir = tag_entry.path();
+                                if let Ok(mut abi_entries) = fs::read_dir(&tag_dir).await {
+                                    while let Some(abi_entry) =
+                                        abi_entries.next_entry().await.ok().flatten()
+                                    {
+                                        if let Ok(file_type) = abi_entry.file_type().await
+                                            && file_type.is_dir()
+                                        {
+                                            let skins_dir = abi_entry.path().join("skins");
+                                            if skins_dir.exists() {
+                                                self.scan_skin_directory(&skins_dir, skins).await;
                                             }
                                         }
                                     }
@@ -532,7 +523,7 @@ impl DynamicDeviceProvider for AndroidManager {
             }
         }
 
-        api_infos.sort_by(|a, b| b.level.cmp(&a.level));
+        api_infos.sort_by_key(|a| std::cmp::Reverse(a.level));
         Ok(api_infos)
     }
 

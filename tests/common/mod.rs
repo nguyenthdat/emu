@@ -29,7 +29,9 @@ impl EnvVarGuard {
     {
         let key = key.into();
         let original = std::env::var_os(key);
-        std::env::set_var(key, value.into());
+        unsafe {
+            std::env::set_var(key, value.into());
+        }
         Self { key, original }
     }
 
@@ -41,7 +43,9 @@ impl EnvVarGuard {
     {
         let key = key.into();
         let original = std::env::var_os(key);
-        std::env::remove_var(key);
+        unsafe {
+            std::env::remove_var(key);
+        }
         Self { key, original }
     }
 }
@@ -49,8 +53,8 @@ impl EnvVarGuard {
 impl Drop for EnvVarGuard {
     fn drop(&mut self) {
         match &self.original {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
+            Some(value) => unsafe { std::env::set_var(self.key, value) },
+            None => unsafe { std::env::remove_var(self.key) },
         }
     }
 }

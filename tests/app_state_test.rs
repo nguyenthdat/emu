@@ -8,9 +8,9 @@ use emu::{
         Mode, Notification, NotificationType, Panel,
     },
     models::{
+        Platform,
         api_level::ApiLevel,
         device::{AndroidDevice, DeviceStatus, IosDevice},
-        Platform,
     },
 };
 use std::sync::Arc;

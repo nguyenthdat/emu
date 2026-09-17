@@ -28,7 +28,9 @@ use crate::unit::common::setup_mock_android_sdk;
 #[tokio::test]
 async fn test_android_manager_creation() {
     let temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     // Create a mock executor with necessary responses
     let mock_executor = MockCommandExecutor::new()
@@ -46,7 +48,9 @@ async fn test_android_manager_creation() {
 #[test]
 fn test_device_category_classification() {
     let temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     // Create a mock executor
     let mock_executor = MockCommandExecutor::new()
@@ -145,7 +149,9 @@ fn test_android_version_name_mapping() {
 #[tokio::test]
 async fn test_android_manager_new() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new();
     let manager_result = AndroidManager::with_executor(Arc::new(mock_executor));
@@ -173,7 +179,9 @@ async fn test_android_manager_new() {
 #[tokio::test]
 async fn test_android_manager_list_devices() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
     let adb_path = _temp_dir.path().join("platform-tools/adb");
@@ -248,7 +256,9 @@ async fn test_android_manager_list_devices() {
 #[tokio::test]
 async fn test_android_manager_error_handling() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new();
     let manager_result = AndroidManager::with_executor(Arc::new(mock_executor));
@@ -300,7 +310,9 @@ async fn test_android_manager_error_handling() {
 async fn test_android_manager_list_devices_basic() {
     // Create Android SDK environment for testing
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let complex_avd_output = r#"Available Android Virtual Devices:
     Name: Pixel_7_API_34
@@ -343,7 +355,9 @@ async fn test_android_manager_create_device_success() {
 
     // Create Android SDK environment for testing
     let temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let avdmanager_path = temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
     let sdkmanager_path = temp_dir.path().join("cmdline-tools/latest/bin/sdkmanager");
@@ -463,8 +477,8 @@ Available Packages:"#)
 
     // Restore original ANDROID_HOME
     match original_android_home {
-        Some(value) => std::env::set_var("ANDROID_HOME", value),
-        None => std::env::remove_var("ANDROID_HOME"),
+        Some(value) => unsafe { std::env::set_var("ANDROID_HOME", value) },
+        None => unsafe { std::env::remove_var("ANDROID_HOME") },
     }
 
     assert!(result.is_ok(), "Failed to create device: {result:?}");
@@ -475,7 +489,9 @@ Available Packages:"#)
 async fn test_command_error_propagation() {
     // Create Android SDK environment for testing
     let temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let avdmanager_path = temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
     let adb_path = temp_dir.path().join("platform-tools/adb");
@@ -517,7 +533,9 @@ async fn test_command_error_propagation() {
 async fn test_concurrent_device_operations() {
     // Create Android SDK environment for testing
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avd_output = r#"Available Android Virtual Devices:
     Name: Device_A

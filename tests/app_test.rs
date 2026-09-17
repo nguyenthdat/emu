@@ -246,10 +246,10 @@ async fn test_app_creation_stress() {
 
     let mut success_count = 0;
     for task in tasks {
-        if let Ok(result) = task.await {
-            if result.is_ok() {
-                success_count += 1;
-            }
+        if let Ok(result) = task.await
+            && result.is_ok()
+        {
+            success_count += 1;
         }
     }
     // At least one should succeed (or all fail gracefully)
@@ -325,12 +325,16 @@ mod constructor_tests {
         assert!(sdk_path.join("platform-tools").exists());
 
         // Verify executables were created
-        assert!(sdk_path
-            .join("cmdline-tools/latest/bin/avdmanager")
-            .exists());
-        assert!(sdk_path
-            .join("cmdline-tools/latest/bin/sdkmanager")
-            .exists());
+        assert!(
+            sdk_path
+                .join("cmdline-tools/latest/bin/avdmanager")
+                .exists()
+        );
+        assert!(
+            sdk_path
+                .join("cmdline-tools/latest/bin/sdkmanager")
+                .exists()
+        );
         assert!(sdk_path.join("platform-tools/adb").exists());
         assert!(sdk_path.join("emulator/emulator").exists());
     }

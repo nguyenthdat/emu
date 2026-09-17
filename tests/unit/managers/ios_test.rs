@@ -848,8 +848,10 @@ mod command_executor_tests {
         assert!(!xcrun_calls.is_empty());
 
         // Confirm simctl subcommand is included
-        assert!(xcrun_calls
-            .iter()
-            .any(|(_cmd, args)| args.contains(&"simctl".to_string())));
+        assert!(
+            xcrun_calls
+                .iter()
+                .any(|(_cmd, args)| args.contains(&"simctl".to_string()))
+        );
     }
 }

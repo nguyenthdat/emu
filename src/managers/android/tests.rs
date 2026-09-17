@@ -1,10 +1,10 @@
 use super::*;
 use crate::managers::android::parser::AvdListParser;
 use crate::managers::common::DeviceConfig;
-use crate::models::device_info::DynamicDeviceProvider;
 use crate::models::ApiLevel;
-use crate::utils::command_executor::mock::MockCommandExecutor;
+use crate::models::device_info::DynamicDeviceProvider;
 use crate::utils::ApiLevelCache;
+use crate::utils::command_executor::mock::MockCommandExecutor;
 use std::collections::HashMap;
 use std::env;
 use std::ffi::OsString;
@@ -24,7 +24,9 @@ impl EnvVarGuard {
     {
         let key = key.into();
         let original = env::var_os(key);
-        env::set_var(key, value.into());
+        unsafe {
+            env::set_var(key, value.into());
+        }
         Self { key, original }
     }
 }
@@ -32,8 +34,8 @@ impl EnvVarGuard {
 impl Drop for EnvVarGuard {
     fn drop(&mut self) {
         match &self.original {
-            Some(value) => env::set_var(self.key, value),
-            None => env::remove_var(self.key),
+            Some(value) => unsafe { env::set_var(self.key, value) },
+            None => unsafe { env::remove_var(self.key) },
         }
     }
 }
@@ -164,23 +166,31 @@ fn test_find_android_home_with_env_var() {
     let temp_dir = setup_test_android_sdk();
     let android_home = temp_dir.path().to_path_buf();
 
-    env::set_var("ANDROID_HOME", &android_home);
+    unsafe {
+        env::set_var("ANDROID_HOME", &android_home);
+    }
 
     let result = AndroidManager::find_android_home();
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), android_home);
 
-    env::remove_var("ANDROID_HOME");
+    unsafe {
+        env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
 fn test_find_android_home_not_set() {
-    env::remove_var("ANDROID_HOME");
-    env::remove_var("ANDROID_SDK_ROOT");
+    unsafe {
+        env::remove_var("ANDROID_HOME");
+    }
+    unsafe {
+        env::remove_var("ANDROID_SDK_ROOT");
+    }
 
     let result = AndroidManager::find_android_home();
-    if result.is_err() {
-        assert!(result.unwrap_err().to_string().contains("Android"));
+    if let Err(err) = result {
+        assert!(err.to_string().contains("Android"));
     }
 }
 
@@ -225,7 +235,9 @@ fn test_find_tool_not_found() {
 #[test]
 fn test_get_device_category() {
     let temp_dir = setup_test_android_sdk();
-    env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let executor = std::sync::Arc::new(MockCommandExecutor::new());
     let manager = AndroidManager::with_executor(executor).expect("Failed to create manager");
@@ -267,13 +279,17 @@ fn test_get_device_category() {
     );
     assert_eq!(manager.get_device_category("", ""), "phone");
 
-    env::remove_var("ANDROID_HOME");
+    unsafe {
+        env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
 fn test_get_android_version_name() {
     let temp_dir = setup_test_android_sdk();
-    env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let executor = std::sync::Arc::new(MockCommandExecutor::new());
     let manager = AndroidManager::with_executor(executor).expect("Failed to create manager");
@@ -291,13 +307,17 @@ fn test_get_android_version_name() {
     assert_eq!(manager.get_android_version_name(1), "API 1");
     assert_eq!(manager.get_android_version_name(0), "API 0");
 
-    env::remove_var("ANDROID_HOME");
+    unsafe {
+        env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
 fn test_parse_api_level_from_package() {
     let temp_dir = setup_test_android_sdk();
-    env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let executor = std::sync::Arc::new(MockCommandExecutor::new());
     let manager = AndroidManager::with_executor(executor).expect("Failed to create manager");
@@ -346,7 +366,9 @@ fn test_parse_api_level_from_package() {
         None
     );
 
-    env::remove_var("ANDROID_HOME");
+    unsafe {
+        env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
@@ -408,7 +430,9 @@ fn test_find_matching_device_id() {
 #[tokio::test]
 async fn test_run_commands_parallel() {
     let temp_dir = setup_test_android_sdk();
-    env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new()
         .with_success("cmd1", &[], "output1")
@@ -419,7 +443,9 @@ async fn test_run_commands_parallel() {
     let manager = match AndroidManager::with_executor(Arc::new(mock_executor)) {
         Ok(manager) => manager,
         Err(_) => {
-            env::remove_var("ANDROID_HOME");
+            unsafe {
+                env::remove_var("ANDROID_HOME");
+            }
             return;
         }
     };
@@ -440,14 +466,18 @@ async fn test_run_commands_parallel() {
     assert!(results[2].is_ok());
     assert_eq!(results[2].as_ref().unwrap(), "output3 with arg1");
     assert!(results[3].is_err());
-    assert!(results[3]
-        .as_ref()
-        .err()
-        .unwrap()
-        .to_string()
-        .contains("Command failed"));
+    assert!(
+        results[3]
+            .as_ref()
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("Command failed")
+    );
 
-    env::remove_var("ANDROID_HOME");
+    unsafe {
+        env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[tokio::test]
@@ -944,13 +974,17 @@ Another line without proper formatting
 #[tokio::test]
 async fn test_detect_api_level_for_device() {
     let temp_dir = setup_test_android_sdk();
-    env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new();
     let manager = match AndroidManager::with_executor(Arc::new(mock_executor)) {
         Ok(manager) => manager,
         Err(_) => {
-            env::remove_var("ANDROID_HOME");
+            unsafe {
+                env::remove_var("ANDROID_HOME");
+            }
             return;
         }
     };
@@ -986,13 +1020,17 @@ async fn test_detect_api_level_for_device() {
         .await;
     assert_eq!(api_level, 0);
 
-    env::remove_var("ANDROID_HOME");
+    unsafe {
+        env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[tokio::test]
 async fn test_get_avd_path() {
     let temp_dir = setup_test_android_sdk();
-    env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let avd_list_output = r#"
 Available Android Virtual Devices:
@@ -1016,7 +1054,9 @@ Available Android Virtual Devices:
     let manager = match AndroidManager::with_executor(Arc::new(mock_executor)) {
         Ok(manager) => manager,
         Err(_) => {
-            env::remove_var("ANDROID_HOME");
+            unsafe {
+                env::remove_var("ANDROID_HOME");
+            }
             return;
         }
     };
@@ -1041,14 +1081,18 @@ Available Android Virtual Devices:
     let path = manager.get_avd_path("").await.unwrap();
     assert!(path.is_none());
 
-    env::remove_var("ANDROID_HOME");
+    unsafe {
+        env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[tokio::test]
 async fn test_fine_tune_avd_config() {
     let original_android_home = env::var("ANDROID_HOME").ok();
     let temp_dir = setup_test_android_sdk();
-    env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let avd_dir = temp_dir.path().join("test_avd.avd");
     tokio::fs::create_dir_all(&avd_dir).await.unwrap();
@@ -1083,7 +1127,9 @@ Available Android Virtual Devices:
     let manager = match AndroidManager::with_executor(Arc::new(mock_executor)) {
         Ok(manager) => manager,
         Err(_) => {
-            env::remove_var("ANDROID_HOME");
+            unsafe {
+                env::remove_var("ANDROID_HOME");
+            }
             return;
         }
     };
@@ -1110,8 +1156,8 @@ Available Android Virtual Devices:
     assert!(updated_config.contains("hw.audioInput=yes"));
 
     match original_android_home {
-        Some(value) => env::set_var("ANDROID_HOME", value),
-        None => env::remove_var("ANDROID_HOME"),
+        Some(value) => unsafe { env::set_var("ANDROID_HOME", value) },
+        None => unsafe { env::remove_var("ANDROID_HOME") },
     }
 }
 
@@ -1119,14 +1165,18 @@ Available Android Virtual Devices:
 async fn test_fine_tune_avd_config_avd_not_found() {
     let original_android_home = env::var("ANDROID_HOME").ok();
     let temp_dir = setup_test_android_sdk();
-    env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new().with_success("avdmanager", &["list", "avd"], "");
 
     let manager = match AndroidManager::with_executor(Arc::new(mock_executor)) {
         Ok(manager) => manager,
         Err(_) => {
-            env::remove_var("ANDROID_HOME");
+            unsafe {
+                env::remove_var("ANDROID_HOME");
+            }
             return;
         }
     };
@@ -1151,15 +1201,17 @@ async fn test_fine_tune_avd_config_avd_not_found() {
     assert!(result.is_ok());
 
     match original_android_home {
-        Some(value) => env::set_var("ANDROID_HOME", value),
-        None => env::remove_var("ANDROID_HOME"),
+        Some(value) => unsafe { env::set_var("ANDROID_HOME", value) },
+        None => unsafe { env::remove_var("ANDROID_HOME") },
     }
 }
 
 #[tokio::test]
 async fn test_get_dynamic_android_version_name() {
     let temp_dir = setup_test_android_sdk();
-    env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        env::set_var("ANDROID_HOME", temp_dir.path());
+    }
     let sdkmanager_path = temp_dir.path().join("cmdline-tools/latest/bin/sdkmanager");
 
     let platforms_output = r#"
@@ -1185,7 +1237,9 @@ Installed packages:
     let manager = match AndroidManager::with_executor(Arc::new(mock_executor)) {
         Ok(manager) => manager,
         Err(_) => {
-            env::remove_var("ANDROID_HOME");
+            unsafe {
+                env::remove_var("ANDROID_HOME");
+            }
             return;
         }
     };
@@ -1196,7 +1250,9 @@ Installed packages:
     let version_name = manager.get_dynamic_android_version_name(999).await;
     assert!(version_name.is_none());
 
-    env::remove_var("ANDROID_HOME");
+    unsafe {
+        env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[tokio::test]
@@ -1445,13 +1501,17 @@ The following Android Virtual Devices could not be loaded:
 #[tokio::test]
 async fn test_get_device_priority() {
     let temp_dir = setup_test_android_sdk();
-    env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new();
     let manager = match AndroidManager::with_executor(Arc::new(mock_executor)) {
         Ok(manager) => manager,
         Err(_) => {
-            env::remove_var("ANDROID_HOME");
+            unsafe {
+                env::remove_var("ANDROID_HOME");
+            }
             return;
         }
     };
@@ -1466,7 +1526,9 @@ async fn test_get_device_priority() {
     assert!(priority_tv > 0);
     assert!(priority_unknown > 0);
 
-    env::remove_var("ANDROID_HOME");
+    unsafe {
+        env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[tokio::test]
@@ -1474,7 +1536,9 @@ async fn test_get_device_priority() {
 async fn test_get_available_devices() {
     let original_android_home = env::var("ANDROID_HOME").ok();
     let temp_dir = setup_test_android_sdk();
-    env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let fixture_content = include_str!("../../../tests/fixtures/android_outputs.json");
     let fixture: serde_json::Value =
@@ -1492,7 +1556,9 @@ async fn test_get_available_devices() {
     let manager = match AndroidManager::with_executor(Arc::new(mock_executor)) {
         Ok(manager) => manager,
         Err(_) => {
-            env::remove_var("ANDROID_HOME");
+            unsafe {
+                env::remove_var("ANDROID_HOME");
+            }
             return;
         }
     };
@@ -1506,8 +1572,8 @@ async fn test_get_available_devices() {
     assert!(devices.iter().all(|d| !d.display_name.is_empty()));
 
     match original_android_home {
-        Some(value) => env::set_var("ANDROID_HOME", value),
-        None => env::remove_var("ANDROID_HOME"),
+        Some(value) => unsafe { env::set_var("ANDROID_HOME", value) },
+        None => unsafe { env::remove_var("ANDROID_HOME") },
     }
 }
 
@@ -1516,7 +1582,9 @@ async fn test_get_available_devices() {
 async fn test_get_available_api_levels() {
     let original_android_home = env::var("ANDROID_HOME").ok();
     let temp_dir = setup_test_android_sdk();
-    env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let sdkmanager_path = temp_dir.path().join("cmdline-tools/latest/bin/sdkmanager");
     let fixture_content = include_str!("../../../tests/fixtures/android_outputs.json");
@@ -1541,7 +1609,9 @@ async fn test_get_available_api_levels() {
     let manager = match AndroidManager::with_executor(Arc::new(mock_executor)) {
         Ok(manager) => manager,
         Err(_) => {
-            env::remove_var("ANDROID_HOME");
+            unsafe {
+                env::remove_var("ANDROID_HOME");
+            }
             return;
         }
     };
@@ -1555,7 +1625,7 @@ async fn test_get_available_api_levels() {
     assert!(api_levels.iter().all(|a| !a.version_name.is_empty()));
 
     match original_android_home {
-        Some(value) => env::set_var("ANDROID_HOME", value),
-        None => env::remove_var("ANDROID_HOME"),
+        Some(value) => unsafe { env::set_var("ANDROID_HOME", value) },
+        None => unsafe { env::remove_var("ANDROID_HOME") },
     }
 }

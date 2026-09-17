@@ -63,10 +63,10 @@ impl MockBackend {
 
     /// Get text content at specific coordinates
     pub fn get_text_at(&self, x: u16, y: u16) -> Option<String> {
-        if let Some(buffer) = self.get_last_buffer() {
-            if let Some(cell) = buffer.cell((x, y)) {
-                return Some(cell.symbol().to_string());
-            }
+        if let Some(buffer) = self.get_last_buffer()
+            && let Some(cell) = buffer.cell((x, y))
+        {
+            return Some(cell.symbol().to_string());
         }
         None
     }
@@ -117,10 +117,10 @@ impl MockBackend {
         if let Some(buffer) = self.get_last_buffer() {
             for y in area.top()..area.bottom() {
                 for x in area.left()..area.right() {
-                    if let Some(cell) = buffer.cell((x, y)) {
-                        if cell.symbol().contains(expected) {
-                            return true;
-                        }
+                    if let Some(cell) = buffer.cell((x, y))
+                        && cell.symbol().contains(expected)
+                    {
+                        return true;
                     }
                 }
             }
@@ -130,10 +130,10 @@ impl MockBackend {
 
     /// Get style at specific coordinates
     pub fn get_style_at(&self, x: u16, y: u16) -> Option<Style> {
-        if let Some(buffer) = self.get_last_buffer() {
-            if let Some(cell) = buffer.cell((x, y)) {
-                return Some(cell.style());
-            }
+        if let Some(buffer) = self.get_last_buffer()
+            && let Some(cell) = buffer.cell((x, y))
+        {
+            return Some(cell.style());
         }
         None
     }
@@ -160,6 +160,7 @@ impl MockBackend {
 }
 
 impl Backend for MockBackend {
+    type Error = std::io::Error;
     fn draw<'a, I>(&mut self, content: I) -> Result<()>
     where
         I: Iterator<Item = (u16, u16, &'a Cell)>,
@@ -205,6 +206,12 @@ impl Backend for MockBackend {
         self.buffers.push(empty_buffer);
         Ok(())
     }
+    fn clear_region(&mut self, clear_type: ratatui::backend::ClearType) -> Result<()> {
+        match clear_type {
+            ratatui::backend::ClearType::All => self.clear(),
+            _ => Ok(()),
+        }
+    }
 
     fn size(&self) -> Result<Size> {
         Ok(Size::new(self.width, self.height))
@@ -232,8 +239,8 @@ impl Default for MockBackend {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ratatui::widgets::{Block, Borders, Paragraph};
     use ratatui::Terminal;
+    use ratatui::widgets::{Block, Borders, Paragraph};
 
     #[test]
     fn test_mock_backend_creation() {

@@ -1,7 +1,7 @@
 use super::{App, Panel};
-use crate::managers::common::DeviceManager;
 use crate::managers::AndroidManager;
-use crate::models::{device_info::sort_android_devices_for_display, DeviceDetails, Platform};
+use crate::managers::common::DeviceManager;
+use crate::models::{DeviceDetails, Platform, device_info::sort_android_devices_for_display};
 use std::sync::Arc;
 
 impl App {

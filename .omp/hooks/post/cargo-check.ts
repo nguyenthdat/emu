@@ -30,7 +30,13 @@ interface HookContext {
 interface HookAPI {
   on(
     event: "tool_result",
-    handler: (event: ToolResultEvent, ctx: HookContext) => Promise<{ content?: ToolResultContentItem[]; details?: unknown } | void> | { content?: ToolResultContentItem[]; details?: unknown } | void,
+    handler: (
+      event: ToolResultEvent,
+      ctx: HookContext,
+    ) =>
+      | Promise<{ content?: ToolResultContentItem[]; details?: unknown } | void>
+      | { content?: ToolResultContentItem[]; details?: unknown }
+      | void,
   ): void;
   [key: string]: unknown;
 }
@@ -63,13 +69,19 @@ export default function (pi: HookAPI): void {
     } else if (toolName === "edit") {
       const inputStr = event.input?.input;
       if (typeof inputStr === "string") {
-        if (/\[[^\]\r\n]+\.rs#[A-F0-9]{4}\]/.test(inputStr) || inputStr.includes(".rs")) {
+        if (
+          /\[[^\]\r\n]+\.rs#[A-F0-9]{4}\]/.test(inputStr) ||
+          inputStr.includes(".rs")
+        ) {
           touchesRust = true;
         }
       }
     } else if (toolName === "ast_edit") {
       const paths = event.input?.paths;
-      if (Array.isArray(paths) && paths.some((p: unknown) => typeof p === "string" && p.endsWith(".rs"))) {
+      if (
+        Array.isArray(paths) &&
+        paths.some((p: unknown) => typeof p === "string" && p.endsWith(".rs"))
+      ) {
         touchesRust = true;
       }
     }
@@ -80,11 +92,14 @@ export default function (pi: HookAPI): void {
 
     let output = "";
     try {
-      output = execSync("cargo check --all-targets --all-features 2>&1 | grep -E '^error' | head -5", {
-        cwd: ctx.cwd,
-        encoding: "utf8",
-        shell: "/bin/sh",
-      }).trim();
+      output = execSync(
+        "cargo check --all-targets --all-features 2>&1 | grep -E '^error' | head -5",
+        {
+          cwd: ctx.cwd,
+          encoding: "utf8",
+          shell: "/bin/sh",
+        },
+      ).trim();
     } catch (err: unknown) {
       const execErr = err as ExecError;
       // grep exits with 1 when no matches are found; that is a clean check

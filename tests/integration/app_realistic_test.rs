@@ -4,9 +4,9 @@
 //! methods and device operations without requiring external dependencies.
 
 use anyhow::Result;
+use emu::app::Panel;
 use emu::app::state::AppState;
 use emu::app::state::LogEntry;
-use emu::app::Panel;
 use emu::models::{AndroidDevice, DeviceStatus, IosDevice};
 use std::sync::Arc;
 use tokio::sync::Mutex;

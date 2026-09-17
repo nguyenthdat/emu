@@ -1,4 +1,4 @@
-use super::{AndroidManager, AVD_NAME_REGEX, IMAGE_SYSDIR_REGEX, PATH_REGEX};
+use super::{AVD_NAME_REGEX, AndroidManager, IMAGE_SYSDIR_REGEX, PATH_REGEX};
 use crate::{
     constants::{defaults, env_vars::HOME, files, limits::STORAGE_MB_TO_GB_DIVISOR},
     managers::common::DeviceConfig,
@@ -23,10 +23,10 @@ impl AndroidManager {
             let trimmed = line.trim();
             if let Some(caps) = AVD_NAME_REGEX.captures(trimmed) {
                 current_name = caps[1].to_string();
-            } else if let Some(caps) = PATH_REGEX.captures(trimmed) {
-                if current_name == avd_name {
-                    return Ok(Some(PathBuf::from(caps[1].to_string())));
-                }
+            } else if let Some(caps) = PATH_REGEX.captures(trimmed)
+                && current_name == avd_name
+            {
+                return Ok(Some(PathBuf::from(caps[1].to_string())));
             }
         }
 
@@ -66,14 +66,14 @@ impl AndroidManager {
 
             if !device_display_name.is_empty() {
                 if config_content.contains("avd.ini.displayname=") {
-                    if let Some(start) = config_content.find("avd.ini.displayname=") {
-                        if let Some(end) = config_content[start..].find('\n') {
-                            let line_end = start + end;
-                            config_content.replace_range(
-                                start..line_end,
-                                &format!("avd.ini.displayname={device_display_name}"),
-                            );
-                        }
+                    if let Some(start) = config_content.find("avd.ini.displayname=")
+                        && let Some(end) = config_content[start..].find('\n')
+                    {
+                        let line_end = start + end;
+                        config_content.replace_range(
+                            start..line_end,
+                            &format!("avd.ini.displayname={device_display_name}"),
+                        );
                     }
                 } else if let Some(encoding_pos) = config_content.find("avd.ini.encoding=UTF-8\n") {
                     let insert_pos = encoding_pos + "avd.ini.encoding=UTF-8\n".len();
@@ -90,57 +90,53 @@ impl AndroidManager {
 
             if !avd_id.is_empty() {
                 if config_content.contains("AvdId=") {
-                    if let Some(start) = config_content.find("AvdId=") {
-                        if let Some(end) = config_content[start..].find('\n') {
-                            let line_end = start + end;
-                            config_content
-                                .replace_range(start..line_end, &format!("AvdId={avd_id}"));
-                        }
+                    if let Some(start) = config_content.find("AvdId=")
+                        && let Some(end) = config_content[start..].find('\n')
+                    {
+                        let line_end = start + end;
+                        config_content.replace_range(start..line_end, &format!("AvdId={avd_id}"));
                     }
-                } else if let Some(displayname_pos) = config_content.find("avd.ini.displayname=") {
-                    if let Some(line_end) = config_content[displayname_pos..].find('\n') {
-                        let insert_pos = displayname_pos + line_end + 1;
-                        config_content.insert_str(insert_pos, &format!("AvdId={avd_id}\n"));
-                    }
+                } else if let Some(displayname_pos) = config_content.find("avd.ini.displayname=")
+                    && let Some(line_end) = config_content[displayname_pos..].find('\n')
+                {
+                    let insert_pos = displayname_pos + line_end + 1;
+                    config_content.insert_str(insert_pos, &format!("AvdId={avd_id}\n"));
                 }
             }
 
-            if ram_mb > 0 {
-                if let Some(start) = config_content.find("hw.ramSize=") {
-                    if let Some(end) = config_content[start..].find('\n') {
-                        let line_end = start + end;
-                        config_content
-                            .replace_range(start..line_end, &format!("hw.ramSize={ram_mb}"));
-                    }
-                }
+            if ram_mb > 0
+                && let Some(start) = config_content.find("hw.ramSize=")
+                && let Some(end) = config_content[start..].find('\n')
+            {
+                let line_end = start + end;
+                config_content.replace_range(start..line_end, &format!("hw.ramSize={ram_mb}"));
             }
 
-            if storage_mb > 0 {
-                if let Some(start) = config_content.find("disk.dataPartition.size=") {
-                    if let Some(end) = config_content[start..].find('\n') {
-                        let line_end = start + end;
-                        config_content.replace_range(
-                            start..line_end,
-                            &format!(
-                                "disk.dataPartition.size={}G",
-                                storage_mb / STORAGE_MB_TO_GB_DIVISOR
-                            ),
-                        );
-                    }
-                }
+            if storage_mb > 0
+                && let Some(start) = config_content.find("disk.dataPartition.size=")
+                && let Some(end) = config_content[start..].find('\n')
+            {
+                let line_end = start + end;
+                config_content.replace_range(
+                    start..line_end,
+                    &format!(
+                        "disk.dataPartition.size={}G",
+                        storage_mb / STORAGE_MB_TO_GB_DIVISOR
+                    ),
+                );
             }
 
             if config_content.contains("image.sysdir.1=")
                 && !config_content.contains("image.sysdir.1=system-images/android-")
             {
                 // Safety check for unexpected config values.
-            } else if let Some(start) = config_content.find("image.sysdir.1=") {
-                if let Some(end) = config_content[start..].find('\n') {
-                    let line = &config_content[start..start + end];
-                    if !line.ends_with('/') {
-                        let line_end = start + end;
-                        config_content.replace_range(start..line_end, &format!("{line}/"));
-                    }
+            } else if let Some(start) = config_content.find("image.sysdir.1=")
+                && let Some(end) = config_content[start..].find('\n')
+            {
+                let line = &config_content[start..start + end];
+                if !line.ends_with('/') {
+                    let line_end = start + end;
+                    config_content.replace_range(start..line_end, &format!("{line}/"));
                 }
             }
 
@@ -215,13 +211,13 @@ impl AndroidManager {
                                         if let Ok(size_mb) = size_str.parse::<u64>() {
                                             details.storage_size = Some(format!("{size_mb} MB"));
                                         }
-                                    } else if let Some(size_str) = value.strip_suffix('G') {
-                                        if let Ok(size_gb) = size_str.parse::<u64>() {
-                                            details.storage_size = Some(format!(
-                                                "{} MB",
-                                                size_gb * STORAGE_MB_TO_GB_DIVISOR as u64
-                                            ));
-                                        }
+                                    } else if let Some(size_str) = value.strip_suffix('G')
+                                        && let Ok(size_gb) = size_str.parse::<u64>()
+                                    {
+                                        details.storage_size = Some(format!(
+                                            "{} MB",
+                                            size_gb * STORAGE_MB_TO_GB_DIVISOR as u64
+                                        ));
                                     }
                                 }
                                 "hw.lcd.width" => {
@@ -247,10 +243,10 @@ impl AndroidManager {
                                 }
                                 "image.sysdir.1" => {
                                     details.system_image = Some(value.trim().to_string());
-                                    if let Some(caps) = IMAGE_SYSDIR_REGEX.captures(value.trim()) {
-                                        if let Ok(parsed_api) = caps[1].parse::<u32>() {
-                                            api_level = parsed_api;
-                                        }
+                                    if let Some(caps) = IMAGE_SYSDIR_REGEX.captures(value.trim())
+                                        && let Ok(parsed_api) = caps[1].parse::<u32>()
+                                    {
+                                        api_level = parsed_api;
                                     }
                                 }
                                 "hw.device.name" => {
@@ -295,10 +291,10 @@ impl AndroidManager {
             log::warn!("HOME environment variable not set, cannot determine device path");
         }
 
-        if let Some(ref res) = details.resolution {
-            if res.contains('?') {
-                details.resolution = None;
-            }
+        if let Some(ref res) = details.resolution
+            && res.contains('?')
+        {
+            details.resolution = None;
         }
 
         Ok(details)

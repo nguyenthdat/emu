@@ -113,22 +113,21 @@ impl App {
     /// Schedule background device status check for smart device start mode.
     /// This performs a lightweight status check after a delay to ensure accuracy.
     pub(super) async fn update_single_android_device_status(&mut self, device_name: &str) {
-        if let Ok(devices) = self.android_manager.list_devices().await {
-            if let Some(device) = devices.iter().find(|d| d.name == device_name) {
-                let mut state = self.state.lock().await;
-                state.update_single_android_device_status(device_name, device.is_running);
-            }
+        if let Ok(devices) = self.android_manager.list_devices().await
+            && let Some(device) = devices.iter().find(|d| d.name == device_name)
+        {
+            let mut state = self.state.lock().await;
+            state.update_single_android_device_status(device_name, device.is_running);
         }
     }
 
     pub(super) async fn update_single_ios_device_status(&mut self, device_udid: &str) {
-        if let Some(ref ios_manager) = self.ios_manager {
-            if let Ok(devices) = ios_manager.list_devices().await {
-                if let Some(device) = devices.iter().find(|d| d.udid == device_udid) {
-                    let mut state = self.state.lock().await;
-                    state.update_single_ios_device_status(device_udid, device.is_running);
-                }
-            }
+        if let Some(ref ios_manager) = self.ios_manager
+            && let Ok(devices) = ios_manager.list_devices().await
+            && let Some(device) = devices.iter().find(|d| d.udid == device_udid)
+        {
+            let mut state = self.state.lock().await;
+            state.update_single_ios_device_status(device_udid, device.is_running);
         }
     }
 
@@ -158,28 +157,23 @@ impl App {
             if let Some(identifier) = device_identifier {
                 match active_panel {
                     Panel::Android => {
-                        if let Ok(devices) = android_manager.list_devices().await {
-                            if let Some(device) = devices.iter().find(|d| d.name == identifier) {
-                                let mut state = state_clone.lock().await;
-                                state.update_single_android_device_status(
-                                    &identifier,
-                                    device.is_running,
-                                );
-                            }
+                        if let Ok(devices) = android_manager.list_devices().await
+                            && let Some(device) = devices.iter().find(|d| d.name == identifier)
+                        {
+                            let mut state = state_clone.lock().await;
+                            state.update_single_android_device_status(
+                                &identifier,
+                                device.is_running,
+                            );
                         }
                     }
                     Panel::Ios => {
-                        if let Some(ios_manager) = ios_manager {
-                            if let Ok(devices) = ios_manager.list_devices().await {
-                                if let Some(device) = devices.iter().find(|d| d.udid == identifier)
-                                {
-                                    let mut state = state_clone.lock().await;
-                                    state.update_single_ios_device_status(
-                                        &identifier,
-                                        device.is_running,
-                                    );
-                                }
-                            }
+                        if let Some(ios_manager) = ios_manager
+                            && let Ok(devices) = ios_manager.list_devices().await
+                            && let Some(device) = devices.iter().find(|d| d.udid == identifier)
+                        {
+                            let mut state = state_clone.lock().await;
+                            state.update_single_ios_device_status(&identifier, device.is_running);
                         }
                     }
                 }

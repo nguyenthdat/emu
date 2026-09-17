@@ -8,4 +8,4 @@ pub mod fixture_loader;
 pub mod ios_manager_fixture_test;
 
 #[allow(unused_imports)]
-pub use fixture_loader::{fixtures, FixtureLoader};
+pub use fixture_loader::{FixtureLoader, fixtures};

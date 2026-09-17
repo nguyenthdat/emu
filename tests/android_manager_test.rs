@@ -18,7 +18,9 @@ use common::setup_mock_android_sdk;
 fn create_empty_mock_android_manager() -> AndroidManager {
     // Setup mock Android SDK environment
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new()
         .with_success(
@@ -46,7 +48,9 @@ fn create_empty_mock_android_manager() -> AndroidManager {
 fn create_mock_android_manager() -> AndroidManager {
     // Setup mock Android SDK environment
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new()
         .with_success(
@@ -217,7 +221,9 @@ async fn test_android_manager_list_devices() {
 async fn test_android_manager_start_device_not_found() {
     // Setup mock Android SDK environment
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new()
         .with_success(
@@ -240,7 +246,9 @@ async fn test_android_manager_start_device_not_found() {
 async fn test_android_manager_stop_device() {
     // Setup mock Android SDK environment
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new()
         .with_success(
@@ -287,7 +295,9 @@ async fn test_android_manager_stop_device() {
 async fn test_android_manager_delete_device() {
     // Setup mock Android SDK environment
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new().with_success(
         "avdmanager",
@@ -309,7 +319,9 @@ async fn test_android_manager_delete_device() {
 async fn test_android_manager_delete_device_not_found() {
     // Setup mock Android SDK environment
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new().with_error(
         "avdmanager",
@@ -331,7 +343,9 @@ async fn test_android_manager_delete_device_not_found() {
 async fn test_android_manager_create_device_invalid() {
     // Setup mock Android SDK environment
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new().with_error(
         "avdmanager",
@@ -394,7 +408,9 @@ async fn test_android_manager_list_api_levels() {
 async fn test_android_manager_install_system_image() {
     // Setup mock Android SDK environment
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new()
         .with_success(
@@ -427,7 +443,9 @@ async fn test_android_manager_install_system_image() {
 async fn test_android_manager_uninstall_system_image() {
     // Setup mock Android SDK environment
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new().with_success(
         "sdkmanager",
@@ -486,7 +504,9 @@ async fn test_android_manager_memory_safety() {
 async fn test_android_manager_constructor() {
     // Setup mock Android SDK environment
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Test construction with mock executor
     let mock_executor = MockCommandExecutor::new();
@@ -502,7 +522,9 @@ async fn test_android_manager_constructor() {
 async fn test_android_manager_error_handling_graceful() {
     // Setup mock Android SDK environment
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Test that errors are handled gracefully without panicking
     let mock_executor =
@@ -549,7 +571,9 @@ async fn test_android_manager_state_consistency() {
 async fn test_android_manager_device_status_detection() {
     // Setup mock Android SDK environment
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new()
         .with_success(
@@ -631,7 +655,9 @@ async fn test_android_manager_device_status_detection() {
 async fn test_android_manager_parsing_edge_cases() {
     // Setup mock Android SDK environment
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Test with unusual AVD list output
     let mock_executor = MockCommandExecutor::new()

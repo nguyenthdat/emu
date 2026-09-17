@@ -79,19 +79,29 @@ impl App {
 
         match active_panel {
             Panel::Android => {
-                if let Some(device) = android_devices.get(selected_android) {
-                    if device.is_running {
-                        {
+                if let Some(device) = android_devices.get(selected_android)
+                    && device.is_running
+                {
+                    {
+                        let mut state_lock = state.lock().await;
+                        state_lock.clear_logs();
+                        state_lock.reset_log_scroll();
+                    }
+
+                    let device_name = device.name.clone();
+                    let state_clone = Arc::clone(&state);
+
+                    if let Ok(running_avds) = android_manager.get_running_avd_names().await {
+                        if let Some(emulator_serial) = running_avds.get(&device_name) {
+                            let serial = emulator_serial.clone();
+                            let handle = tokio::spawn(async move {
+                                Self::stream_android_logs(state_clone, device_name, serial).await;
+                            });
                             let mut state_lock = state.lock().await;
-                            state_lock.clear_logs();
-                            state_lock.reset_log_scroll();
-                        }
-
-                        let device_name = device.name.clone();
-                        let state_clone = Arc::clone(&state);
-
-                        if let Ok(running_avds) = android_manager.get_running_avd_names().await {
-                            if let Some(emulator_serial) = running_avds.get(&device_name) {
+                            state_lock.log_task_handle = Some(handle);
+                        } else {
+                            let normalized_name = device_name.replace(' ', "_");
+                            if let Some(emulator_serial) = running_avds.get(&normalized_name) {
                                 let serial = emulator_serial.clone();
                                 let handle = tokio::spawn(async move {
                                     Self::stream_android_logs(state_clone, device_name, serial)
@@ -99,54 +109,40 @@ impl App {
                                 });
                                 let mut state_lock = state.lock().await;
                                 state_lock.log_task_handle = Some(handle);
-                            } else {
-                                let normalized_name = device_name.replace(' ', "_");
-                                if let Some(emulator_serial) = running_avds.get(&normalized_name) {
-                                    let serial = emulator_serial.clone();
-                                    let handle = tokio::spawn(async move {
-                                        Self::stream_android_logs(state_clone, device_name, serial)
-                                            .await;
-                                    });
-                                    let mut state_lock = state.lock().await;
-                                    state_lock.log_task_handle = Some(handle);
-                                } else if device.is_running && !running_avds.is_empty() {
-                                    if let Some((_, serial)) = running_avds.iter().next() {
-                                        let serial = serial.clone();
-                                        let handle = tokio::spawn(async move {
-                                            Self::stream_android_logs(
-                                                state_clone,
-                                                device_name,
-                                                serial,
-                                            )
-                                            .await;
-                                        });
-                                        let mut state_lock = state.lock().await;
-                                        state_lock.log_task_handle = Some(handle);
-                                    }
-                                }
+                            } else if device.is_running
+                                && !running_avds.is_empty()
+                                && let Some((_, serial)) = running_avds.iter().next()
+                            {
+                                let serial = serial.clone();
+                                let handle = tokio::spawn(async move {
+                                    Self::stream_android_logs(state_clone, device_name, serial)
+                                        .await;
+                                });
+                                let mut state_lock = state.lock().await;
+                                state_lock.log_task_handle = Some(handle);
                             }
                         }
                     }
                 }
             }
             Panel::Ios => {
-                if let Some(device) = ios_devices.get(selected_ios) {
-                    if device.is_running {
-                        {
-                            let mut state_lock = state.lock().await;
-                            state_lock.clear_logs();
-                            state_lock.reset_log_scroll();
-                        }
-
-                        let device_udid = device.udid.clone();
-                        let device_name = device.name.clone();
-                        let state_clone = Arc::clone(&state);
-                        let handle = tokio::spawn(async move {
-                            Self::stream_ios_logs(state_clone, device_udid, device_name).await;
-                        });
+                if let Some(device) = ios_devices.get(selected_ios)
+                    && device.is_running
+                {
+                    {
                         let mut state_lock = state.lock().await;
-                        state_lock.log_task_handle = Some(handle);
+                        state_lock.clear_logs();
+                        state_lock.reset_log_scroll();
                     }
+
+                    let device_udid = device.udid.clone();
+                    let device_name = device.name.clone();
+                    let state_clone = Arc::clone(&state);
+                    let handle = tokio::spawn(async move {
+                        Self::stream_ios_logs(state_clone, device_udid, device_name).await;
+                    });
+                    let mut state_lock = state.lock().await;
+                    state_lock.log_task_handle = Some(handle);
                 }
             }
         }

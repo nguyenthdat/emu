@@ -1,6 +1,6 @@
 use super::{App, Panel};
 use crate::managers::common::DeviceManager;
-use crate::models::{device_info::sort_android_devices_for_display, AndroidDevice, IosDevice};
+use crate::models::{AndroidDevice, IosDevice, device_info::sort_android_devices_for_display};
 use anyhow::Result;
 use std::collections::HashMap;
 

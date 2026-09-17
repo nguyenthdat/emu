@@ -3,14 +3,14 @@
 //! Measures application startup time, response performance, and memory usage
 //! to detect performance regressions.
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use async_trait::async_trait;
 use emu::app::state::AppState;
 use emu::managers::android::AndroidManager;
 use emu::managers::common::DeviceManager;
 #[cfg(feature = "test-utils")]
 use emu::models::{AndroidDevice, DeviceStatus};
-use emu::utils::command_executor::{mock::MockCommandExecutor, CommandExecutor};
+use emu::utils::command_executor::{CommandExecutor, mock::MockCommandExecutor};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
@@ -24,7 +24,7 @@ const PERFORMANCE_TARGET_UI_RENDER_MS: u64 = 50;
 const PERFORMANCE_TARGET_API_LEVEL_REOPEN_MS: u64 = 100;
 const PERFORMANCE_TARGET_RUNNING_AVD_DETECTION_MS: u64 = 80;
 
-use crate::common::{acquire_test_env_lock, setup_mock_android_sdk, EnvVarGuard};
+use crate::common::{EnvVarGuard, acquire_test_env_lock, setup_mock_android_sdk};
 
 /// Application-wide startup time benchmark
 #[tokio::test]
@@ -126,7 +126,9 @@ async fn test_device_list_performance() {
             "Device list performance for {size_name} ({device_count} devices): {duration:?} exceeds target of {target_ms}ms"
         );
 
-        println!("✅ Device list {size_name} ({device_count} devices): {duration:?} (target: <{target_ms}ms)");
+        println!(
+            "✅ Device list {size_name} ({device_count} devices): {duration:?} (target: <{target_ms}ms)"
+        );
     }
 }
 
@@ -359,7 +361,9 @@ async fn test_ui_rendering_performance() {
             "UI rendering performance: {avg_duration:?} exceeds target of {PERFORMANCE_TARGET_UI_RENDER_MS}ms"
         );
 
-        println!("✅ UI rendering benchmark: {avg_duration:?} avg (target: <{PERFORMANCE_TARGET_UI_RENDER_MS}ms)");
+        println!(
+            "✅ UI rendering benchmark: {avg_duration:?} avg (target: <{PERFORMANCE_TARGET_UI_RENDER_MS}ms)"
+        );
     }
 
     #[cfg(not(feature = "test-utils"))]
@@ -478,7 +482,9 @@ async fn test_memory_usage_performance() {
         // In mock environments, API level parsing may result in 0
     }
 
-    println!("✅ Memory usage benchmark: {duration:?} for {device_count} devices (target: <{target_ms}ms)");
+    println!(
+        "✅ Memory usage benchmark: {duration:?} for {device_count} devices (target: <{target_ms}ms)"
+    );
 }
 
 /// Responsiveness validation test
@@ -605,7 +611,10 @@ async fn test_stress_performance() {
         "Stress test duration {stress_duration:?} exceeds target of {target_seconds}s"
     );
 
-    println!("✅ Stress test: {successful_requests}/{request_count} successful ({:.1}%) in {stress_duration:?}", success_rate * 100.0);
+    println!(
+        "✅ Stress test: {successful_requests}/{request_count} successful ({:.1}%) in {stress_duration:?}",
+        success_rate * 100.0
+    );
 }
 
 /// Performance regression detection test

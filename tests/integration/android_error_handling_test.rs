@@ -16,7 +16,9 @@ use crate::common::setup_mock_android_sdk;
 #[tokio::test]
 async fn test_command_execution_failure_handling() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor =
         MockCommandExecutor::new().with_error("avdmanager", &["list", "avd"], "Command not found");
@@ -35,7 +37,9 @@ async fn test_command_execution_failure_handling() {
 #[tokio::test]
 async fn test_invalid_command_output_recovery() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
     let adb_path = _temp_dir.path().join("platform-tools/adb");
@@ -70,7 +74,9 @@ async fn test_invalid_command_output_recovery() {
 #[tokio::test]
 async fn test_partial_data_loss_handling() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Output with some missing device information
     let partial_data_output = r#"Available Android Virtual Devices:
@@ -134,7 +140,9 @@ async fn test_partial_data_loss_handling() {
 async fn test_unexpected_format_handling() {
     // Output with completely different format
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let unexpected_format = r#"
 {
@@ -167,7 +175,9 @@ async fn test_unexpected_format_handling() {
 async fn test_network_error_retry() {
     // Network-related error message
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let network_error = "Failed to fetch repository information";
     let mock_executor =
@@ -184,7 +194,9 @@ async fn test_network_error_retry() {
 async fn test_permission_error_handling() {
     // Test basic error patterns since this test is environment-independent
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new().with_error(
         "avdmanager",
@@ -208,7 +220,9 @@ async fn test_permission_error_handling() {
 async fn test_sdk_not_installed_handling() {
     // Test basic error patterns since this test is environment-independent
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new().with_error(
         "avdmanager",
@@ -230,7 +244,9 @@ async fn test_sdk_not_installed_handling() {
 async fn test_timeout_handling() {
     // Set normal output (for timeout simulation)
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let normal_output = r#"Available Android Virtual Devices:
     Name: Test_Device
@@ -270,7 +286,9 @@ async fn test_timeout_handling() {
 async fn test_memory_exhaustion_handling() {
     // Test memory usage with large device data
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mut large_output = String::from("Available Android Virtual Devices:\n");
 
@@ -311,7 +329,9 @@ async fn test_memory_exhaustion_handling() {
 async fn test_encoding_error_handling() {
     // Output containing non-ASCII characters
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let unicode_output = r#"Available Android Virtual Devices:
     Name: Device_Test_JP
@@ -352,7 +372,9 @@ async fn test_encoding_error_handling() {
 async fn test_concurrent_error_handling() {
     // Situation where errors occur
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor =
         MockCommandExecutor::new().with_error("avdmanager", &["list", "avd"], "Command failed");
@@ -380,7 +402,9 @@ async fn test_concurrent_error_handling() {
 async fn test_device_manager_trait_error_handling() {
     // Test basic error patterns since this test is environment-independent
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new().with_error(
         "avdmanager",
@@ -419,7 +443,9 @@ async fn test_device_manager_trait_error_handling() {
 async fn test_cascading_error_handling() {
     // First command succeeds, subsequent command fails
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avd_output = r#"Available Android Virtual Devices:
     Name: Test_Device

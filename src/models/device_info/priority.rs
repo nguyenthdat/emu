@@ -1,54 +1,54 @@
 use super::*;
-use lazy_static::lazy_static;
 use regex::Regex;
 use std::cmp::Reverse;
+use std::sync::LazyLock;
 
 use crate::models::device::AndroidDevice;
 
-lazy_static! {
-    static ref DEVICE_VERSION_PATTERNS: Vec<(Regex, usize)> = vec![
+static DEVICE_VERSION_PATTERNS: LazyLock<Vec<(Regex, usize)>> = LazyLock::new(|| {
+    vec![
         (
             Regex::new(r"pixel[_\s]?(\d+)").expect("valid pixel version regex"),
-            REGEX_GROUP_FIRST
+            REGEX_GROUP_FIRST,
         ),
         (
             Regex::new(r"galaxy[_\s]?s(\d+)").expect("valid galaxy version regex"),
-            REGEX_GROUP_FIRST
+            REGEX_GROUP_FIRST,
         ),
         (
             Regex::new(r"galaxy[_\s]?z[_\s]?fold[_\s]?(\d+)")
                 .expect("valid galaxy fold version regex"),
-            REGEX_GROUP_FIRST
+            REGEX_GROUP_FIRST,
         ),
         (
             Regex::new(r"galaxy[_\s]?z[_\s]?flip[_\s]?(\d+)")
                 .expect("valid galaxy flip version regex"),
-            REGEX_GROUP_FIRST
+            REGEX_GROUP_FIRST,
         ),
         (
             Regex::new(r"oneplus[_\s]?(\d+)").expect("valid oneplus version regex"),
-            REGEX_GROUP_FIRST
+            REGEX_GROUP_FIRST,
         ),
         (
             Regex::new(r"nexus[_\s]?(\d+)").expect("valid nexus version regex"),
-            REGEX_GROUP_FIRST
+            REGEX_GROUP_FIRST,
         ),
         (
             Regex::new(r"(\d+)[_\s]?pro").expect("valid pro version regex"),
-            REGEX_GROUP_FIRST
+            REGEX_GROUP_FIRST,
         ),
         (
             Regex::new(r"(\d+)[_\s]?plus").expect("valid plus version regex"),
-            REGEX_GROUP_FIRST
+            REGEX_GROUP_FIRST,
         ),
         (
             Regex::new(r"(\d+)[_\s]?ultra").expect("valid ultra version regex"),
-            REGEX_GROUP_FIRST
+            REGEX_GROUP_FIRST,
         ),
-    ];
-    static ref NUMBER_REGEX: Regex =
-        Regex::new(r"\b(\d{1,2})\b").expect("valid generic version regex");
-}
+    ]
+});
+static NUMBER_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(\d{1,2})\b").expect("valid generic version regex"));
 
 impl DynamicDeviceConfig {
     pub fn calculate_android_device_priority(device_id: &str, display_name: &str) -> u32 {
@@ -233,26 +233,26 @@ impl DynamicDeviceConfig {
             return ONEPLUS_OEM_PRIORITY;
         }
 
-        if let Some(start) = display_name.find('(') {
-            if let Some(end) = display_name.find(')') {
-                let oem_part = &display_name[start + 1..end].to_lowercase();
-                if oem_part == DEVICE_KEYWORD_XIAOMI {
-                    return XIAOMI_OEM_PRIORITY;
-                } else if oem_part == DEVICE_KEYWORD_ASUS {
-                    return ASUS_OEM_PRIORITY;
-                } else if oem_part == DEVICE_KEYWORD_OPPO {
-                    return OPPO_OEM_PRIORITY;
-                } else if oem_part == DEVICE_KEYWORD_VIVO {
-                    return NOKIA_OEM_PRIORITY;
-                } else if oem_part == DEVICE_KEYWORD_HUAWEI {
-                    return HUAWEI_OEM_PRIORITY;
-                } else if oem_part == DEVICE_KEYWORD_MOTOROLA {
-                    return MOTOROLA_OEM_PRIORITY;
-                } else if oem_part == DEVICE_KEYWORD_LENOVO {
-                    return LENOVO_OEM_PRIORITY;
-                } else if oem_part == DEVICE_KEYWORD_SONY {
-                    return SONY_OEM_PRIORITY;
-                }
+        if let Some(start) = display_name.find('(')
+            && let Some(end) = display_name.find(')')
+        {
+            let oem_part = &display_name[start + 1..end].to_lowercase();
+            if oem_part == DEVICE_KEYWORD_XIAOMI {
+                return XIAOMI_OEM_PRIORITY;
+            } else if oem_part == DEVICE_KEYWORD_ASUS {
+                return ASUS_OEM_PRIORITY;
+            } else if oem_part == DEVICE_KEYWORD_OPPO {
+                return OPPO_OEM_PRIORITY;
+            } else if oem_part == DEVICE_KEYWORD_VIVO {
+                return NOKIA_OEM_PRIORITY;
+            } else if oem_part == DEVICE_KEYWORD_HUAWEI {
+                return HUAWEI_OEM_PRIORITY;
+            } else if oem_part == DEVICE_KEYWORD_MOTOROLA {
+                return MOTOROLA_OEM_PRIORITY;
+            } else if oem_part == DEVICE_KEYWORD_LENOVO {
+                return LENOVO_OEM_PRIORITY;
+            } else if oem_part == DEVICE_KEYWORD_SONY {
+                return SONY_OEM_PRIORITY;
             }
         }
 
@@ -263,22 +263,22 @@ impl DynamicDeviceConfig {
         let combined = format!("{device_id} {display_name}").to_lowercase();
 
         for (pattern, group) in DEVICE_VERSION_PATTERNS.iter() {
-            if let Some(caps) = pattern.captures(&combined) {
-                if let Some(version_str) = caps.get(*group) {
-                    if let Ok(version) = version_str.as_str().parse::<u32>() {
-                        return VERSION_PRIORITY_BASE - version.min(MAX_VERSION_FOR_PRIORITY);
-                    }
-                }
+            if let Some(caps) = pattern.captures(&combined)
+                && let Some(version_str) = caps.get(*group)
+                && let Ok(version) = version_str.as_str().parse::<u32>()
+            {
+                return VERSION_PRIORITY_BASE - version.min(MAX_VERSION_FOR_PRIORITY);
             }
         }
 
         let mut versions = Vec::new();
 
         for caps in NUMBER_REGEX.captures_iter(&combined) {
-            if let Ok(num) = caps[1].parse::<u32>() {
-                if num > 0 && num <= MAX_VERSION_NUMBER {
-                    versions.push(num);
-                }
+            if let Ok(num) = caps[1].parse::<u32>()
+                && num > 0
+                && num <= MAX_VERSION_NUMBER
+            {
+                versions.push(num);
             }
         }
 
@@ -293,20 +293,20 @@ impl DynamicDeviceConfig {
         let parts: Vec<&str> = device_name.split_whitespace().collect();
 
         for part in parts {
-            if let Ok(num) = part.parse::<u32>() {
-                if num > 0 && num <= MAX_VERSION_NUMBER {
-                    return num;
-                }
+            if let Ok(num) = part.parse::<u32>()
+                && num > 0
+                && num <= MAX_VERSION_NUMBER
+            {
+                return num;
             }
 
-            if part.contains('-') {
-                if let Some(num_part) = part.split('-').next_back() {
-                    if let Ok(num) = num_part.parse::<u32>() {
-                        if num > 0 && num <= MAX_VERSION_NUMBER {
-                            return num;
-                        }
-                    }
-                }
+            if part.contains('-')
+                && let Some(num_part) = part.split('-').next_back()
+                && let Ok(num) = num_part.parse::<u32>()
+                && num > 0
+                && num <= MAX_VERSION_NUMBER
+            {
+                return num;
             }
         }
 
@@ -344,20 +344,20 @@ impl DynamicDeviceConfig {
         let combined = format!("{device_id} {display_name}");
 
         for part in combined.split_whitespace() {
-            if let Ok(num) = part.parse::<u32>() {
-                if num > 0 && num <= MAX_VERSION_NUMBER {
-                    return Some(VERSION_PRIORITY_BASE - num);
-                }
+            if let Ok(num) = part.parse::<u32>()
+                && num > 0
+                && num <= MAX_VERSION_NUMBER
+            {
+                return Some(VERSION_PRIORITY_BASE - num);
             }
 
-            if part.contains('_') {
-                if let Some(num_part) = part.split('_').next_back() {
-                    if let Ok(num) = num_part.parse::<u32>() {
-                        if num > 0 && num <= MAX_VERSION_NUMBER {
-                            return Some(VERSION_PRIORITY_BASE - num);
-                        }
-                    }
-                }
+            if part.contains('_')
+                && let Some(num_part) = part.split('_').next_back()
+                && let Ok(num) = num_part.parse::<u32>()
+                && num > 0
+                && num <= MAX_VERSION_NUMBER
+            {
+                return Some(VERSION_PRIORITY_BASE - num);
             }
         }
 

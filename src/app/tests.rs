@@ -5,7 +5,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::ffi::OsString;
 use std::sync::OnceLock;
 use tokio::test;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 struct EnvVarGuard {
     key: &'static str,
@@ -15,7 +15,9 @@ struct EnvVarGuard {
 impl EnvVarGuard {
     fn set(key: &'static str, value: impl Into<OsString>) -> Self {
         let original = std::env::var_os(key);
-        std::env::set_var(key, value.into());
+        unsafe {
+            std::env::set_var(key, value.into());
+        }
         Self { key, original }
     }
 }
@@ -23,8 +25,8 @@ impl EnvVarGuard {
 impl Drop for EnvVarGuard {
     fn drop(&mut self) {
         match &self.original {
-            Some(value) => std::env::set_var(self.key, value),
-            None => std::env::remove_var(self.key),
+            Some(value) => unsafe { std::env::set_var(self.key, value) },
+            None => unsafe { std::env::remove_var(self.key) },
         }
     }
 }
@@ -275,10 +277,12 @@ async fn test_app_new_populates_android_devices_and_details_in_background() {
     assert_eq!(details.storage_size.as_deref(), Some("8192 MB"));
     assert_eq!(details.resolution.as_deref(), Some("1080x2400"));
     assert_eq!(details.dpi.as_deref(), Some("420 DPI"));
-    assert!(details
-        .device_path
-        .as_ref()
-        .is_some_and(|path| path.contains("Pixel_7_API_34.avd")));
+    assert!(
+        details
+            .device_path
+            .as_ref()
+            .is_some_and(|path| path.contains("Pixel_7_API_34.avd"))
+    );
 }
 
 #[test]
@@ -560,11 +564,15 @@ async fn test_reload_device_types_for_category_uses_cached_android_devices() {
 #[test]
 async fn test_app_new() {
     let _env_lock = acquire_test_env_lock().await;
-    std::env::set_var("ANDROID_HOME", "/tmp/mock_android_sdk");
+    unsafe {
+        std::env::set_var("ANDROID_HOME", "/tmp/mock_android_sdk");
+    }
 
     let temp_dir = tempfile::tempdir().unwrap();
     let sdk_path = temp_dir.path();
-    std::env::set_var("ANDROID_HOME", sdk_path);
+    unsafe {
+        std::env::set_var("ANDROID_HOME", sdk_path);
+    }
 
     tokio::fs::create_dir_all(sdk_path.join("emulator"))
         .await
@@ -612,7 +620,9 @@ async fn test_app_new() {
         }
     }
 
-    std::env::remove_var("ANDROID_HOME");
+    unsafe {
+        std::env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
@@ -645,7 +655,9 @@ async fn test_app_state_initialization() {
     let _env_lock = acquire_test_env_lock().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let sdk_path = temp_dir.path();
-    std::env::set_var("ANDROID_HOME", sdk_path);
+    unsafe {
+        std::env::set_var("ANDROID_HOME", sdk_path);
+    }
 
     tokio::fs::create_dir_all(sdk_path.join("cmdline-tools/latest/bin"))
         .await
@@ -679,7 +691,9 @@ async fn test_app_state_initialization() {
         assert!(state.notifications.is_empty());
     }
 
-    std::env::remove_var("ANDROID_HOME");
+    unsafe {
+        std::env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
@@ -687,7 +701,9 @@ async fn test_app_with_mock_devices() {
     let _env_lock = acquire_test_env_lock().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let sdk_path = temp_dir.path();
-    std::env::set_var("ANDROID_HOME", sdk_path);
+    unsafe {
+        std::env::set_var("ANDROID_HOME", sdk_path);
+    }
 
     tokio::fs::create_dir_all(sdk_path.join("cmdline-tools/latest/bin"))
         .await
@@ -734,7 +750,9 @@ async fn test_app_with_mock_devices() {
         assert_eq!(state.android_devices[0].name, "TestDevice");
     }
 
-    std::env::remove_var("ANDROID_HOME");
+    unsafe {
+        std::env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
@@ -742,7 +760,9 @@ async fn test_refresh_devices_incremental() {
     let _env_lock = acquire_test_env_lock().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let sdk_path = temp_dir.path();
-    std::env::set_var("ANDROID_HOME", sdk_path);
+    unsafe {
+        std::env::set_var("ANDROID_HOME", sdk_path);
+    }
 
     tokio::fs::create_dir_all(sdk_path.join("cmdline-tools/latest/bin"))
         .await
@@ -777,7 +797,9 @@ async fn test_refresh_devices_incremental() {
         }
     }
 
-    std::env::remove_var("ANDROID_HOME");
+    unsafe {
+        std::env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
@@ -1633,7 +1655,9 @@ exit 0
 async fn test_event_processing_disabled() {
     let temp_dir = tempfile::tempdir().unwrap();
     let sdk_path = temp_dir.path();
-    std::env::set_var("ANDROID_HOME", sdk_path);
+    unsafe {
+        std::env::set_var("ANDROID_HOME", sdk_path);
+    }
 
     tokio::fs::create_dir_all(sdk_path.join("cmdline-tools/latest/bin"))
         .await
@@ -1662,7 +1686,9 @@ async fn test_event_processing_disabled() {
         assert_eq!(state.active_panel, Panel::Android);
     }
 
-    std::env::remove_var("ANDROID_HOME");
+    unsafe {
+        std::env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
@@ -1670,7 +1696,9 @@ async fn test_device_list_management() {
     let _env_lock = acquire_test_env_lock().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let sdk_path = temp_dir.path();
-    std::env::set_var("ANDROID_HOME", sdk_path);
+    unsafe {
+        std::env::set_var("ANDROID_HOME", sdk_path);
+    }
 
     tokio::fs::create_dir_all(sdk_path.join("cmdline-tools/latest/bin"))
         .await
@@ -1707,7 +1735,9 @@ async fn test_device_list_management() {
         assert!(state.android_devices.is_empty() || !state.android_devices.is_empty());
     }
 
-    std::env::remove_var("ANDROID_HOME");
+    unsafe {
+        std::env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
@@ -1715,7 +1745,9 @@ async fn test_background_task_management() {
     let _env_lock = acquire_test_env_lock().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let sdk_path = temp_dir.path();
-    std::env::set_var("ANDROID_HOME", sdk_path);
+    unsafe {
+        std::env::set_var("ANDROID_HOME", sdk_path);
+    }
 
     tokio::fs::create_dir_all(sdk_path.join("cmdline-tools/latest/bin"))
         .await
@@ -1745,7 +1777,9 @@ async fn test_background_task_management() {
         assert_eq!(state.active_panel, Panel::Android);
     }
 
-    std::env::remove_var("ANDROID_HOME");
+    unsafe {
+        std::env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
@@ -1753,7 +1787,9 @@ async fn test_state_synchronization() {
     let _env_lock = acquire_test_env_lock().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let sdk_path = temp_dir.path();
-    std::env::set_var("ANDROID_HOME", sdk_path);
+    unsafe {
+        std::env::set_var("ANDROID_HOME", sdk_path);
+    }
 
     tokio::fs::create_dir_all(sdk_path.join("cmdline-tools/latest/bin"))
         .await
@@ -1795,7 +1831,9 @@ async fn test_state_synchronization() {
         assert_eq!(mode, Mode::Normal);
     }
 
-    std::env::remove_var("ANDROID_HOME");
+    unsafe {
+        std::env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
@@ -1803,7 +1841,9 @@ async fn test_device_creation_workflow() {
     let _env_lock = acquire_test_env_lock().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let sdk_path = temp_dir.path();
-    std::env::set_var("ANDROID_HOME", sdk_path);
+    unsafe {
+        std::env::set_var("ANDROID_HOME", sdk_path);
+    }
 
     tokio::fs::create_dir_all(sdk_path.join("cmdline-tools/latest/bin"))
         .await
@@ -1834,7 +1874,9 @@ async fn test_device_creation_workflow() {
         assert_eq!(state.create_device_form.ram_size, "2048");
     }
 
-    std::env::remove_var("ANDROID_HOME");
+    unsafe {
+        std::env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
@@ -1842,7 +1884,9 @@ async fn test_notification_system() {
     let _env_lock = acquire_test_env_lock().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let sdk_path = temp_dir.path();
-    std::env::set_var("ANDROID_HOME", sdk_path);
+    unsafe {
+        std::env::set_var("ANDROID_HOME", sdk_path);
+    }
 
     tokio::fs::create_dir_all(sdk_path.join("cmdline-tools/latest/bin"))
         .await
@@ -1880,7 +1924,9 @@ async fn test_notification_system() {
         assert_eq!(state.notifications[0].message, "Test notification");
     }
 
-    std::env::remove_var("ANDROID_HOME");
+    unsafe {
+        std::env::remove_var("ANDROID_HOME");
+    }
 }
 
 #[test]
@@ -1888,7 +1934,9 @@ async fn test_mode_transitions() {
     let _env_lock = acquire_test_env_lock().await;
     let temp_dir = tempfile::tempdir().unwrap();
     let sdk_path = temp_dir.path();
-    std::env::set_var("ANDROID_HOME", sdk_path);
+    unsafe {
+        std::env::set_var("ANDROID_HOME", sdk_path);
+    }
 
     tokio::fs::create_dir_all(sdk_path.join("cmdline-tools/latest/bin"))
         .await
@@ -1923,5 +1971,7 @@ async fn test_mode_transitions() {
         }
     }
 
-    std::env::remove_var("ANDROID_HOME");
+    unsafe {
+        std::env::remove_var("ANDROID_HOME");
+    }
 }

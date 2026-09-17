@@ -211,7 +211,7 @@ use crate::managers::common::{DeviceConfig, DeviceManager};
 use crate::models::IosDevice;
 #[cfg(target_os = "macos")]
 use anyhow::Context;
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 
 #[cfg(target_os = "macos")]
 use crate::utils::command::CommandRunner;
@@ -297,7 +297,9 @@ impl IosManager {
     pub fn with_executor(executor: Arc<dyn CommandExecutor>) -> Result<Self> {
         // Quick check for Xcode Command Line Tools
         if which::which(XCRUN).is_err() {
-            bail!("Xcode Command Line Tools not found. Please install Xcode or run 'xcode-select --install'.")
+            bail!(
+                "Xcode Command Line Tools not found. Please install Xcode or run 'xcode-select --install'."
+            )
         }
 
         // Skip expensive simctl verification at startup - will be validated on first use

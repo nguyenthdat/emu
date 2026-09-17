@@ -8,8 +8,8 @@ use crate::{
             COMPLETION_THRESHOLD_PERCENTAGE, DOWNLOAD_PHASE_INCREMENT,
             DOWNLOAD_PHASE_START_PERCENTAGE, DOWNLOAD_PROGRESS_MULTIPLIER, EXTRACT_PHASE_INCREMENT,
             EXTRACT_PHASE_START_PERCENTAGE, INSTALL_PHASE_START_PERCENTAGE,
-            LOADING_PHASE_INCREMENT, PROGRESS_PHASE_100_PERCENT, PROGRESS_PHASE_75_PERCENT,
-            PROGRESS_PHASE_85_PERCENT,
+            LOADING_PHASE_INCREMENT, PROGRESS_PHASE_75_PERCENT, PROGRESS_PHASE_85_PERCENT,
+            PROGRESS_PHASE_100_PERCENT,
         },
         timeouts::DEVICE_START_WAIT_TIME,
     },
@@ -112,7 +112,7 @@ impl AndroidManager {
         }
 
         let mut api_levels: Vec<ApiLevel> = api_levels_map.into_values().collect();
-        api_levels.sort_by(|a, b| b.api.cmp(&a.api));
+        api_levels.sort_by_key(|a| std::cmp::Reverse(a.api));
         api_levels
     }
 
@@ -232,21 +232,19 @@ impl AndroidManager {
 
                 while let Ok(Some(line)) = lines.next_line().await {
                     if line.contains("Downloading") {
-                        if line.contains(" MiB") || line.contains(" MB") {
-                            if let Some(start) = line.find('(') {
-                                if let Some(end) = line.find('%') {
-                                    if let Ok(pct) = line[start + 1..end].trim().parse::<u8>() {
-                                        progress_stdout(InstallProgress {
-                                            operation: "Downloading system image...".to_string(),
-                                            percentage: (DOWNLOAD_PHASE_START_PERCENTAGE
-                                                + (pct * DOWNLOAD_PROGRESS_MULTIPLIER
-                                                    / PROGRESS_PHASE_100_PERCENT))
-                                                .min(EXTRACT_PHASE_START_PERCENTAGE),
-                                            eta_seconds: None,
-                                        });
-                                    }
-                                }
-                            }
+                        if (line.contains(" MiB") || line.contains(" MB"))
+                            && let Some(start) = line.find('(')
+                            && let Some(end) = line.find('%')
+                            && let Ok(pct) = line[start + 1..end].trim().parse::<u8>()
+                        {
+                            progress_stdout(InstallProgress {
+                                operation: "Downloading system image...".to_string(),
+                                percentage: (DOWNLOAD_PHASE_START_PERCENTAGE
+                                    + (pct * DOWNLOAD_PROGRESS_MULTIPLIER
+                                        / PROGRESS_PHASE_100_PERCENT))
+                                    .min(EXTRACT_PHASE_START_PERCENTAGE),
+                                eta_seconds: None,
+                            });
                         }
                     } else if line.contains("Unzipping") || line.contains("Extracting") {
                         progress_stdout(InstallProgress {

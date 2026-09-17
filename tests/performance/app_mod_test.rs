@@ -6,7 +6,7 @@
 use emu::app::App;
 use std::time::Duration;
 
-use crate::common::{acquire_test_env_lock, setup_mock_android_sdk, EnvVarGuard};
+use crate::common::{EnvVarGuard, acquire_test_env_lock, setup_mock_android_sdk};
 
 /// Test initialization timing and performance (consolidated)
 #[tokio::test]

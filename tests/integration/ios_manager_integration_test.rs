@@ -176,10 +176,10 @@ async fn test_ios_manager_concurrent_operations() {
                     Err(e) => {
                         let error_message = e.to_string();
                         assert!(
-                            error_message.contains("xcrun") || 
-                            error_message.contains("simctl") || 
-                            error_message.contains("iOS") ||
-                            error_message.contains("Xcode"),
+                            error_message.contains("xcrun")
+                                || error_message.contains("simctl")
+                                || error_message.contains("iOS")
+                                || error_message.contains("Xcode"),
                             "Task {task_id} devices error should be simulator-related: {error_message}"
                         );
                     }

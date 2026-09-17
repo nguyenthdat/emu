@@ -7,11 +7,11 @@ use crate::{
     ui::Theme,
 };
 use ratatui::{
+    Frame,
     layout::Rect,
     style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Wrap},
-    Frame,
 };
 
 pub(crate) fn render_log_panel(frame: &mut Frame, area: Rect, state: &AppState, theme: &Theme) {
@@ -98,7 +98,7 @@ pub(crate) fn render_log_panel(frame: &mut Frame, area: Rect, state: &AppState, 
                 ),
                 Span::raw(" "),
                 Span::styled(
-                    format!("[{}]", &entry.level),
+                    format!("[{}]", entry.level),
                     level_style(&entry.level, theme),
                 ),
                 Span::raw(" "),

@@ -3,7 +3,7 @@ use emu::app::App;
 use std::time::Instant;
 
 #[cfg(feature = "test-utils")]
-use crate::common::{acquire_test_env_lock, setup_mock_android_sdk, EnvVarGuard};
+use crate::common::{EnvVarGuard, acquire_test_env_lock, setup_mock_android_sdk};
 
 #[tokio::test]
 #[cfg(feature = "test-utils")]

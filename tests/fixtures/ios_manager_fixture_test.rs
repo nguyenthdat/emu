@@ -105,10 +105,9 @@ impl FixtureiOSManager {
             for runtime in runtime_array {
                 if let (Some(name), Some(identifier)) =
                     (runtime["name"].as_str(), runtime["identifier"].as_str())
+                    && identifier.contains("iOS")
                 {
-                    if identifier.contains("iOS") {
-                        runtimes.push((name.to_string(), identifier.to_string()));
-                    }
+                    runtimes.push((name.to_string(), identifier.to_string()));
                 }
             }
         }

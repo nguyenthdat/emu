@@ -1,6 +1,6 @@
 use super::{
-    parser::AvdListParser, AndroidManager, API_LEVEL_REGEX, API_OR_ANDROID_REGEX, BASED_ON_REGEX,
-    IMAGE_SYSDIR_REGEX, TARGET_CONFIG_REGEX,
+    API_LEVEL_REGEX, API_OR_ANDROID_REGEX, AndroidManager, BASED_ON_REGEX, IMAGE_SYSDIR_REGEX,
+    TARGET_CONFIG_REGEX, parser::AvdListParser,
 };
 use crate::{
     constants::{
@@ -10,7 +10,7 @@ use crate::{
         limits::STORAGE_MB_TO_GB_DIVISOR,
         timeouts::{DEVICE_START_WAIT_TIME, DEVICE_STATUS_CHECK_DELAY},
     },
-    models::{device_info::sort_android_devices_for_display, AndroidDevice, DeviceStatus},
+    models::{AndroidDevice, DeviceStatus, device_info::sort_android_devices_for_display},
 };
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
@@ -40,10 +40,10 @@ impl AndroidManager {
 
         let mut version_map = std::collections::HashMap::new();
         for (level_str, display) in cached_targets {
-            if let Ok(level) = level_str.parse::<u32>() {
-                if let Some(dash_pos) = display.find(" - Android ") {
-                    version_map.insert(level, display[dash_pos + 11..].to_string());
-                }
+            if let Ok(level) = level_str.parse::<u32>()
+                && let Some(dash_pos) = display.find(" - Android ")
+            {
+                version_map.insert(level, display[dash_pos + 11..].to_string());
             }
         }
 
@@ -109,27 +109,27 @@ impl AndroidManager {
                     if let Ok(parsed_api) = caps[1].parse::<u32>() {
                         api = parsed_api;
                     }
-                } else if let Some(caps) = TARGET_CONFIG_REGEX.captures(&config_content) {
-                    if let Ok(parsed_api) = caps[1].parse::<u32>() {
-                        api = parsed_api;
-                    }
+                } else if let Some(caps) = TARGET_CONFIG_REGEX.captures(&config_content)
+                    && let Ok(parsed_api) = caps[1].parse::<u32>()
+                {
+                    api = parsed_api;
                 }
             }
         }
 
-        if api == 0 {
-            if let Ok(Some(avd_path)) = self.get_avd_path(name).await {
-                let config_path = avd_path.join(files::CONFIG_FILE);
-                if let Ok(config_content) = fs::read_to_string(&config_path).await {
-                    if let Some(caps) = IMAGE_SYSDIR_REGEX.captures(&config_content) {
-                        if let Ok(parsed_api) = caps[1].parse::<u32>() {
-                            api = parsed_api;
-                        }
-                    } else if let Some(caps) = TARGET_CONFIG_REGEX.captures(&config_content) {
-                        if let Ok(parsed_api) = caps[1].parse::<u32>() {
-                            api = parsed_api;
-                        }
+        if api == 0
+            && let Ok(Some(avd_path)) = self.get_avd_path(name).await
+        {
+            let config_path = avd_path.join(files::CONFIG_FILE);
+            if let Ok(config_content) = fs::read_to_string(&config_path).await {
+                if let Some(caps) = IMAGE_SYSDIR_REGEX.captures(&config_content) {
+                    if let Ok(parsed_api) = caps[1].parse::<u32>() {
+                        api = parsed_api;
                     }
+                } else if let Some(caps) = TARGET_CONFIG_REGEX.captures(&config_content)
+                    && let Ok(parsed_api) = caps[1].parse::<u32>()
+                {
+                    api = parsed_api;
                 }
             }
         }

@@ -16,7 +16,9 @@ use crate::common::setup_mock_android_sdk;
 #[tokio::test]
 async fn test_intermittent_network_failure_recovery() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // MockCommandExecutor can only hold a single response for the same command,
     // so this test cannot simulate actual error recovery.
@@ -64,7 +66,9 @@ async fn test_intermittent_network_failure_recovery() {
 #[tokio::test]
 async fn test_partial_command_failure_recovery() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avd_output = r#"Available Android Virtual Devices:
     Name: Partial_Failure_Device
@@ -93,7 +97,9 @@ async fn test_partial_command_failure_recovery() {
 #[tokio::test]
 async fn test_resource_exhaustion_recovery() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Due to MockCommandExecutor constraints, we cannot simulate actual resource exhaustion errors
     // Instead, we test a case that works normally
@@ -171,7 +177,9 @@ async fn test_resource_exhaustion_recovery() {
 #[tokio::test]
 async fn test_corrupted_device_config_recovery() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let corrupted_output = r#"Available Android Virtual Devices:
     Name: 
@@ -247,7 +255,9 @@ async fn test_app_state_inconsistency_recovery() {
 #[tokio::test]
 async fn test_concurrent_error_recovery() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let success_output = r#"Available Android Virtual Devices:
     Name: Concurrent_Recovery_Device
@@ -314,7 +324,9 @@ async fn test_concurrent_error_recovery() {
 #[tokio::test]
 async fn test_timeout_recovery() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Note: MockCommandExecutor uses HashMap, so only the last registration for a command is kept.
     // This test is adjusted to work with this limitation.
@@ -345,7 +357,9 @@ async fn test_timeout_recovery() {
 #[tokio::test]
 async fn test_graceful_degradation() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Test fallback method when primary command fails
     let mock_executor = MockCommandExecutor::new()
@@ -395,7 +409,9 @@ async fn test_graceful_degradation() {
 #[tokio::test]
 async fn test_performance_under_error_conditions() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Note: MockCommandExecutor uses HashMap, so only the last registration for a command is kept.
     // We'll test performance with a single error response.

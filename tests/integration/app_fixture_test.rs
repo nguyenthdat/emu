@@ -389,15 +389,18 @@ async fn test_app_state_log_management() -> Result<()> {
         assert_eq!(logs.len(), 3);
 
         // Check that logs were added
-        assert!(logs
-            .iter()
-            .any(|log| log.message.contains("Test log entry 1")));
-        assert!(logs
-            .iter()
-            .any(|log| log.message.contains("Test log entry 2")));
-        assert!(logs
-            .iter()
-            .any(|log| log.message.contains("Test log entry 3")));
+        assert!(
+            logs.iter()
+                .any(|log| log.message.contains("Test log entry 1"))
+        );
+        assert!(
+            logs.iter()
+                .any(|log| log.message.contains("Test log entry 2"))
+        );
+        assert!(
+            logs.iter()
+                .any(|log| log.message.contains("Test log entry 3"))
+        );
     }
 
     // Test log clearing

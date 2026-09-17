@@ -3,13 +3,13 @@
 
 use emu::{
     app::{
-        state::{CreateDeviceField, Notification},
         AppState, Mode, Panel,
+        state::{CreateDeviceField, Notification},
     },
     models::device::{AndroidDevice, DeviceStatus, IosDevice},
-    ui::{render::draw_app, Theme},
+    ui::{Theme, render::draw_app},
 };
-use ratatui::{backend::TestBackend, Terminal};
+use ratatui::{Terminal, backend::TestBackend};
 use std::time::Instant;
 
 /// Helper to create a mock terminal for testing

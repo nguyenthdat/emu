@@ -8,10 +8,10 @@ use crate::{
     ui::Theme,
 };
 use ratatui::{
+    Frame,
     style::{Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
-    Frame,
 };
 
 pub(crate) fn render_notifications(frame: &mut Frame, state: &AppState, _theme: &Theme) {

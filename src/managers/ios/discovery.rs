@@ -1,5 +1,5 @@
 #[cfg(target_os = "macos")]
-use super::{extract_ios_version, IosManager};
+use super::{IosManager, extract_ios_version};
 #[cfg(target_os = "macos")]
 use crate::constants::ios::{IOS_DEVICE_TYPE_PREFIX, IOS_INCH_PATTERN, IOS_INCH_REPLACEMENT};
 #[cfg(target_os = "macos")]
@@ -145,28 +145,27 @@ impl IosManager {
         let mut runtimes = Vec::new();
         if let Some(runtimes_array) = json.get("runtimes").and_then(|v| v.as_array()) {
             for runtime_json in runtimes_array {
-                if let Some(identifier) = runtime_json.get("identifier").and_then(|v| v.as_str()) {
-                    if runtime_json
+                if let Some(identifier) = runtime_json.get("identifier").and_then(|v| v.as_str())
+                    && runtime_json
                         .get("isAvailable")
                         .and_then(|v| v.as_bool())
                         .unwrap_or(false)
-                    {
-                        let display_name =
-                            if let Some(name) = runtime_json.get("name").and_then(|v| v.as_str()) {
-                                name.to_string()
-                            } else if let Some(version) =
-                                runtime_json.get("version").and_then(|v| v.as_str())
-                            {
-                                format!("iOS {version}")
-                            } else {
-                                identifier
-                                    .replace("com.apple.CoreSimulator.SimRuntime.", "")
-                                    .replace("-", ".")
-                                    .replace("iOS.", "iOS ")
-                            };
+                {
+                    let display_name =
+                        if let Some(name) = runtime_json.get("name").and_then(|v| v.as_str()) {
+                            name.to_string()
+                        } else if let Some(version) =
+                            runtime_json.get("version").and_then(|v| v.as_str())
+                        {
+                            format!("iOS {version}")
+                        } else {
+                            identifier
+                                .replace("com.apple.CoreSimulator.SimRuntime.", "")
+                                .replace("-", ".")
+                                .replace("iOS.", "iOS ")
+                        };
 
-                        runtimes.push((identifier.to_string(), display_name));
-                    }
+                    runtimes.push((identifier.to_string(), display_name));
                 }
             }
         }

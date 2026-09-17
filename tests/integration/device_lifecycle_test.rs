@@ -22,7 +22,9 @@ async fn test_complete_device_lifecycle() {
     let original_android_home = std::env::var("ANDROID_HOME").ok();
 
     let temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", temp_dir.path());
+    }
 
     let avdmanager_path = temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
     let sdkmanager_path = temp_dir.path().join("cmdline-tools/latest/bin/sdkmanager");
@@ -211,8 +213,8 @@ id: 4 or "pixel_4"
         Err(e) => {
             // Restore original ANDROID_HOME before panicking
             match original_android_home.clone() {
-                Some(value) => std::env::set_var("ANDROID_HOME", value),
-                None => std::env::remove_var("ANDROID_HOME"),
+                Some(value) => unsafe { std::env::set_var("ANDROID_HOME", value) },
+                None => unsafe { std::env::remove_var("ANDROID_HOME") },
             }
             panic!("Failed to create AndroidManager: {e}");
         }
@@ -283,8 +285,8 @@ id: 4 or "pixel_4"
 
     // Restore original ANDROID_HOME
     match original_android_home {
-        Some(value) => std::env::set_var("ANDROID_HOME", value),
-        None => std::env::remove_var("ANDROID_HOME"),
+        Some(value) => unsafe { std::env::set_var("ANDROID_HOME", value) },
+        None => unsafe { std::env::remove_var("ANDROID_HOME") },
     }
 }
 
@@ -297,7 +299,9 @@ async fn test_app_state_device_integration() {
     let original_android_home = std::env::var("ANDROID_HOME").ok();
 
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avd_output = r#"Available Android Virtual Devices:
     Name: AppState_Test_Device
@@ -328,8 +332,8 @@ async fn test_app_state_device_integration() {
 
     // Restore original ANDROID_HOME
     match original_android_home {
-        Some(value) => std::env::set_var("ANDROID_HOME", value),
-        None => std::env::remove_var("ANDROID_HOME"),
+        Some(value) => unsafe { std::env::set_var("ANDROID_HOME", value) },
+        None => unsafe { std::env::remove_var("ANDROID_HOME") },
     }
 }
 
@@ -342,7 +346,9 @@ async fn test_concurrent_device_management() {
     let original_android_home = std::env::var("ANDROID_HOME").ok();
 
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avd_list_multiple = r#"Available Android Virtual Devices:
     Name: Device_A
@@ -416,8 +422,8 @@ async fn test_concurrent_device_management() {
 
     // Restore original ANDROID_HOME
     match original_android_home {
-        Some(value) => std::env::set_var("ANDROID_HOME", value),
-        None => std::env::remove_var("ANDROID_HOME"),
+        Some(value) => unsafe { std::env::set_var("ANDROID_HOME", value) },
+        None => unsafe { std::env::remove_var("ANDROID_HOME") },
     }
 }
 
@@ -430,7 +436,9 @@ async fn test_lifecycle_error_recovery() {
     let original_android_home = std::env::var("ANDROID_HOME").ok();
 
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let mock_executor = MockCommandExecutor::new()
         // Initial list retrieval succeeds
@@ -516,8 +524,8 @@ id: 4 or "pixel_4"
 
     // Restore original ANDROID_HOME
     match original_android_home {
-        Some(value) => std::env::set_var("ANDROID_HOME", value),
-        None => std::env::remove_var("ANDROID_HOME"),
+        Some(value) => unsafe { std::env::set_var("ANDROID_HOME", value) },
+        None => unsafe { std::env::remove_var("ANDROID_HOME") },
     }
 }
 
@@ -530,7 +538,9 @@ async fn test_device_details_lifecycle() {
     let original_android_home = std::env::var("ANDROID_HOME").ok();
 
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avd_output = r#"Available Android Virtual Devices:
     Name: Detail_Test_Device
@@ -568,7 +578,7 @@ async fn test_device_details_lifecycle() {
 
     // Restore original ANDROID_HOME
     match original_android_home {
-        Some(value) => std::env::set_var("ANDROID_HOME", value),
-        None => std::env::remove_var("ANDROID_HOME"),
+        Some(value) => unsafe { std::env::set_var("ANDROID_HOME", value) },
+        None => unsafe { std::env::remove_var("ANDROID_HOME") },
     }
 }

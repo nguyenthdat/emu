@@ -1,4 +1,4 @@
-use super::{state, App, Mode, Panel};
+use super::{App, Mode, Panel, state};
 use crate::managers::common::DeviceManager;
 use crate::models::error::format_user_error;
 use anyhow::Result;
@@ -144,10 +144,10 @@ impl App {
                                 state.add_success_notification(format!("Device '{name}' stopped"));
                                 state.update_single_android_device_status(&name, false);
 
-                                if let Some(ref cached) = state.cached_device_details {
-                                    if cached.identifier == name {
-                                        state.clear_cached_device_details();
-                                    }
+                                if let Some(ref cached) = state.cached_device_details
+                                    && cached.identifier == name
+                                {
+                                    state.clear_cached_device_details();
                                 }
                                 Ok(())
                             }
@@ -174,10 +174,10 @@ impl App {
                                 state.add_info_notification(format!("Starting device '{name}'..."));
                                 state.update_single_android_device_status(&name, true);
 
-                                if let Some(ref cached) = state.cached_device_details {
-                                    if cached.identifier == name {
-                                        state.clear_cached_device_details();
-                                    }
+                                if let Some(ref cached) = state.cached_device_details
+                                    && cached.identifier == name
+                                {
+                                    state.clear_cached_device_details();
                                 }
                                 Ok(())
                             }
@@ -221,10 +221,10 @@ impl App {
                                     ));
                                     state.update_single_ios_device_status(&udid, false);
 
-                                    if let Some(ref cached) = state.cached_device_details {
-                                        if cached.identifier == udid {
-                                            state.clear_cached_device_details();
-                                        }
+                                    if let Some(ref cached) = state.cached_device_details
+                                        && cached.identifier == udid
+                                    {
+                                        state.clear_cached_device_details();
                                     }
                                     Ok(())
                                 }
@@ -254,10 +254,10 @@ impl App {
                                     ));
                                     state.update_single_ios_device_status(&udid, true);
 
-                                    if let Some(ref cached) = state.cached_device_details {
-                                        if cached.identifier == udid {
-                                            state.clear_cached_device_details();
-                                        }
+                                    if let Some(ref cached) = state.cached_device_details
+                                        && cached.identifier == udid
+                                    {
+                                        state.clear_cached_device_details();
                                     }
                                     Ok(())
                                 }

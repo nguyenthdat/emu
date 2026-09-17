@@ -23,8 +23,8 @@ mod tests;
 mod ui;
 
 use crate::constants::{
-    timeouts::{DEFAULT_AUTO_REFRESH_INTERVAL, FAST_REFRESH_INTERVAL_SECS},
     MAX_LOG_ENTRIES, MAX_NOTIFICATIONS,
+    timeouts::{DEFAULT_AUTO_REFRESH_INTERVAL, FAST_REFRESH_INTERVAL_SECS},
 };
 use crate::models::{AndroidDevice, IosDevice};
 use std::collections::VecDeque;

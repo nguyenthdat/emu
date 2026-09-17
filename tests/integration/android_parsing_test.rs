@@ -15,7 +15,9 @@ use crate::common::setup_mock_android_sdk;
 #[tokio::test]
 async fn test_avd_list_parsing_comprehensive() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let avdmanager_path = _temp_dir.path().join("cmdline-tools/latest/bin/avdmanager");
     let adb_path = _temp_dir.path().join("platform-tools/adb");
@@ -95,7 +97,9 @@ async fn test_avd_list_parsing_comprehensive() {
 #[tokio::test]
 async fn test_api_level_detection_strategies() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Test config.ini parsing as highest priority strategy
     let _config_ini_content = r#"image.sysdir.1=system-images/android-34/google_apis_playstore/arm64-v8a/
@@ -128,7 +132,9 @@ hw.lcd.density=420"#;
 #[tokio::test]
 async fn test_device_details_parsing() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Detailed device information output
     let device_details_output = r#"Available Android Virtual Devices:
@@ -163,7 +169,9 @@ async fn test_device_details_parsing() {
 #[tokio::test]
 async fn test_system_image_parsing() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Simulation of sdkmanager output
     let system_images_output = r#"Installed packages:
@@ -193,7 +201,9 @@ Available Packages:
 #[tokio::test]
 async fn test_emulator_state_mapping() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Complex adb devices output
     let adb_devices_output = r#"List of devices attached
@@ -266,7 +276,9 @@ emulator-5558	unauthorized
 #[tokio::test]
 async fn test_parsing_edge_cases() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Partially corrupted AVD list output
     let malformed_avd_output = r#"Available Android Virtual Devices:
@@ -304,7 +316,9 @@ async fn test_parsing_edge_cases() {
 #[tokio::test]
 async fn test_api_level_regex_patterns() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Various API level description formats
     let various_api_formats = r#"Available Android Virtual Devices:
@@ -366,7 +380,9 @@ async fn test_api_level_regex_patterns() {
 #[tokio::test]
 async fn test_device_name_normalization() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     // Device names with spaces and hyphens
     let complex_names_output = r#"Available Android Virtual Devices:
@@ -411,7 +427,9 @@ async fn test_device_name_normalization() {
 #[tokio::test]
 async fn test_concurrent_parsing_stability() {
     let _temp_dir = setup_mock_android_sdk();
-    std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    unsafe {
+        std::env::set_var("ANDROID_HOME", _temp_dir.path());
+    }
 
     let stable_output = r#"Available Android Virtual Devices:
     Name: Concurrent_Test_Device

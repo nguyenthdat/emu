@@ -294,10 +294,9 @@ use crate::{
     utils::command_executor::CommandExecutor,
 };
 use anyhow::Result;
-use lazy_static::lazy_static;
 use regex::Regex;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::time::Instant;
 use tokio::sync::RwLock;
 
@@ -309,30 +308,37 @@ type TimedStringCache = Arc<RwLock<Option<TimedCache<String>>>>;
 type TimedApiLevelsCache = Arc<RwLock<Option<TimedCache<Vec<ApiLevel>>>>>;
 type DeviceMetadataMap = std::collections::HashMap<String, CachedAndroidDeviceMetadata>;
 
-lazy_static! {
-    // Device listing regexes
-    static ref ID_REGEX: Regex = Regex::new(r#"id:\s*\d+\s*or\s*\"(.+)\""#).unwrap();
-    static ref NAME_REGEX: Regex = Regex::new(r"Name:\s*(.+)").unwrap();
-    static ref OEM_REGEX: Regex = Regex::new(r"OEM\s*:\s*(.+)").unwrap();
+// Device listing regexes
+pub(super) static ID_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"id:\s*\d+\s*or\s*\"(.+)\""#).unwrap());
+pub(super) static NAME_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Name:\s*(.+)").unwrap());
+pub(super) static OEM_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"OEM\s*:\s*(.+)").unwrap());
 
-    // AVD listing regexes
-    static ref AVD_NAME_REGEX: Regex = Regex::new(r"Name:\s*(.+)").unwrap();
-    static ref PATH_REGEX: Regex = Regex::new(r"Path:\s*(.+)").unwrap();
-    static ref TARGET_REGEX: Regex = Regex::new(r"Target:\s*(.+)").unwrap();
-    static ref ABI_REGEX: Regex = Regex::new(r"Tag/ABI:\s*(.+)").unwrap();
-    static ref DEVICE_REGEX: Regex = Regex::new(r"Device:\s*(.+)").unwrap();
-    static ref BASED_ON_REGEX: Regex =
-        Regex::new(r"Based on:\s*Android(?:\s*API)?\s*([\d.]+)").unwrap();
+// AVD listing regexes
+pub(super) static AVD_NAME_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Name:\s*(.+)").unwrap());
+pub(super) static PATH_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Path:\s*(.+)").unwrap());
+pub(super) static TARGET_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Target:\s*(.+)").unwrap());
+pub(super) static ABI_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Tag/ABI:\s*(.+)").unwrap());
+pub(super) static DEVICE_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Device:\s*(.+)").unwrap());
+pub(super) static BASED_ON_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Based on:\s*Android(?:\s*API)?\s*([\d.]+)").unwrap());
 
-    // Config parsing regexes
-    static ref IMAGE_SYSDIR_REGEX: Regex = Regex::new(r"image\.sysdir\.1=system-images/android-(\d+)/?").unwrap();
-    static ref TARGET_CONFIG_REGEX: Regex = Regex::new(r"target=android-(\d+)").unwrap();
-    static ref API_LEVEL_REGEX: Regex = Regex::new(r"API level (\d+)").unwrap();
-    static ref ANDROID_VERSION_REGEX: Regex = Regex::new(r"android-(\d+)").unwrap();
-    static ref AVD_DISPLAYNAME_REGEX: Regex = Regex::new(r"avd\.ini\.displayname=(.+)").unwrap();
-    static ref NUMBER_PATTERN_REGEX: Regex = Regex::new(r"(\d{2,3})").unwrap();
-    static ref API_OR_ANDROID_REGEX: Regex = Regex::new(r"(?:API level |android-)(\d+)").unwrap();
-}
+// Config parsing regexes
+pub(super) static IMAGE_SYSDIR_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"image\.sysdir\.1=system-images/android-(\d+)/?").unwrap());
+pub(super) static TARGET_CONFIG_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"target=android-(\d+)").unwrap());
+pub(super) static API_LEVEL_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"API level (\d+)").unwrap());
+pub(super) static API_OR_ANDROID_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?:API level |android-)(\d+)").unwrap());
 
 /// Android Virtual Device (AVD) manager implementation.
 ///
