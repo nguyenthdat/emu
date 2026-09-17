@@ -333,4 +333,4 @@ fn bench_device_list_parsing(b: &mut Bencher) {
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System design and components
 - [DEVELOPMENT.md](DEVELOPMENT.md) - Development workflow
-- [CLAUDE.md](../CLAUDE.md) - AI assistant guidelines
+- [.omp/AGENTS.md](../.omp/AGENTS.md) - AI assistant guidelines

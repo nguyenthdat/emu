@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to coding assistants and OMP agents when working with code in this repository.
 
 ## Project Overview
 
@@ -115,7 +115,7 @@ See [docs/TESTING.md](docs/TESTING.md) for full testing guide.
 - ✅ Ultra-responsive input (8ms polling, no debouncing)
 - ✅ Background loading, smart caching, incremental refresh
 - ✅ Comprehensive test suite (720+ tests, CI/CD ready)
-- ✅ PostToolUse hook (`.claude/settings.json`): `cargo check` after `.rs` edits
+- ✅ Post-tool hook (`.omp/hooks/post/cargo-check.ts`): `cargo check` after `.rs` edits
 
 ### Known Issues
 
@@ -127,5 +127,5 @@ See [docs/TESTING.md](docs/TESTING.md) for full testing guide.
 
 - **pre-commit**: `cargo clippy --all-targets --all-features -- -D warnings` + `cargo fmt`
 - **pre-push**: `RUST_TEST_THREADS=1 cargo test --bins --tests --features test-utils`
-- **PostToolUse** (`.claude/settings.json`): `cargo check` after `.rs` file edits
+- **Post-tool hook** (`.omp/hooks/post/cargo-check.ts`): `cargo check` after `.rs` file edits
 - **CI**: Build → Check & Lint → Test (ubuntu + macos)
