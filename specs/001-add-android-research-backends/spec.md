@@ -12,12 +12,19 @@
 
 - "https://github.com/WildKernels/GKI_KernelSU_SUSFS ví 1 ví dụ các tool có trong này"
 - "bổ sung 1 cái là các cli command cần phát triển đầy đủ hơn để cho automation tui là cho người dùng"
+- "ưu tiên phát tiển theo tứ tự trc ví dụ android sẽ làm trc IOS vì google đã cung cấp khá đầy đủ các tool để làm"
 
 > **Notice**: The capabilities specified in this document represent a required future delivery
 > target and development scope for the Emu project. They do not constitute an active implementation
 > claim of existing repository capabilities. In accordance with project governance, full support
 > requires empirical verification on controlled, compatible real environments before being declared
 > supported, while automated CI continues to rely on decoupled unit and mock tests.
+
+## Clarifications
+
+### Session 2026-09-17
+
+- Q: Which mobile platform should be prioritized for development, and why? → A: Develop Android research capabilities first, covering Android Emulator and Cuttlefish, then new iOS/Apple research capabilities in a later phase; the priority reflects the user's assessment that Google's Android tooling is more readily available.
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -996,6 +1003,12 @@ These outcome targets supplement, and do not relax, the constitution's responsiv
   - **Future Delivery Target**: Support for the research backends and tooling described in this
     specification represents a development target for upcoming implementation iterations. It is not an
     active claim of current repository capabilities.
+  - **Development Priority — Android First**: Android Emulator and Cuttlefish research capabilities,
+    including complete unattended CLI and human-facing TUI workflows, take development priority
+    before new iOS/Apple research backends. iOS work is not a dependency or acceptance gate for
+    this Android feature. This ordering does not narrow or relax either Android backend's existing
+    baseline or extended-capability acceptance. The rationale is the user's tooling-availability priority,
+    not verified universal compatibility.
   - **Locally Managed Backends**: Research devices are hosted and managed locally on the researcher's
     workstation. Remote, cloud-hosted, or multi-host orchestration is excluded from this feature.
   - **Host Platform Support Boundaries**: Android Emulator is supported across Linux, macOS, and
@@ -1087,8 +1100,10 @@ These outcome targets supplement, and do not relax, the constitution's responsiv
     Store system images need not permit research root or custom kernels, and privileged debugging access
     alone does not satisfy research root verification.
 - **Explicit Exclusions**:
-  - **Apple iOS Platforms**: iOS devices and iOS simulators are strictly excluded from this Android
-    research specification.
+  - **Apple iOS Platforms**: iOS devices, iOS simulators, and new darwin-vm/Inferno integrations are
+    outside this Android research feature. New iOS/Apple research capabilities are deferred to a later
+    development phase rather than removed from long-term project direction. Existing iOS Simulator
+    workflows supported by the project remain unchanged by this Android-first sequencing.
   - **Physical Devices & Flashing**: Physical tethered Android devices and physical device partition
     flashing are out of scope; the feature governs virtual Android environments only.
   - **Host Privilege Modification**: Host operating system rooting, kernel patching, hypervisor security

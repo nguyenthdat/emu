@@ -1,0 +1,678 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://emu.rs/schemas/v1/research.schema.json",
+  "title": "EmuResearchSchema",
+  "description": "JSON Schema defining all operational payloads, entity representations, and stream envelopes for Android Research Backends in Emu.",
+  "type": "object",
+  "definitions": {
+    "OutputEnvelope": {
+      "type": "object",
+      "required": ["status", "outcome", "operation_id", "data", "error"],
+      "properties": {
+        "$schema": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": [
+            "success",
+            "already_satisfied",
+            "accepted",
+            "failed",
+            "rejected",
+            "timed_out",
+            "cancelled"
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "already_satisfied",
+            "proposal_created",
+            "auth_refused",
+            "invalid_input",
+            "unsupported",
+            "conflict",
+            "timeout",
+            "cancelled",
+            "execution_failed"
+          ]
+        },
+        "operation_id": {
+          "type": "string",
+          "pattern": "^op_[0-9A-Za-z]+$"
+        },
+        "data": {
+          "type": ["object", "null"]
+        },
+        "error": {
+          "anyOf": [{ "$ref": "#/definitions/ErrorRecord" }, { "type": "null" }]
+        }
+      },
+      "additionalProperties": false
+    },
+    "StreamLogEnvelope": {
+      "type": "object",
+      "required": [
+        "timestamp",
+        "level",
+        "event",
+        "phase",
+        "message",
+        "operation_id"
+      ],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "level": {
+          "type": "string",
+          "enum": ["DEBUG", "INFO", "WARN", "ERROR"]
+        },
+        "event": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "preflight",
+            "staging",
+            "booting",
+            "verifying",
+            "settled",
+            "recovering",
+            "teardown"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "operation_id": {
+          "type": "string",
+          "pattern": "^op_[0-9A-Za-z]+$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ErrorRecord": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "GENERIC_FAILURE",
+            "INVALID_INPUT",
+            "UNSUPPORTED_HOST",
+            "UNSUPPORTED_HARDWARE",
+            "AUTH_REQUIRED",
+            "AUTH_EXPIRED",
+            "AUTH_MISMATCH",
+            "CAPABILITY_CONFLICT",
+            "MULTIPLE_ROOTS_COLLISION",
+            "PORT_COLLISION",
+            "ARTIFACT_MISMATCH",
+            "GUEST_VERIFICATION_FAILED",
+            "OPERATION_TIMEOUT",
+            "OPERATION_CANCELLED",
+            "BASELINE_UNVERIFIED",
+            "BASELINE_MISSING"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Sha256Digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "ResearchDeviceId": {
+      "type": "string",
+      "pattern": "^(emulator|cuttlefish):[a-zA-Z0-9_\\-\\.]+$"
+    },
+    "BackendType": {
+      "type": "string",
+      "enum": ["emulator", "cuttlefish"]
+    },
+    "CpuArchitecture": {
+      "type": "string",
+      "enum": ["arm64", "x86_64"]
+    },
+    "RootFlavor": {
+      "type": "string",
+      "enum": [
+        "kernelsu_next",
+        "kernelsu",
+        "resukisu",
+        "sukisu_ultra",
+        "kowsu",
+        "no_root"
+      ]
+    },
+    "DeviceLifecycleState": {
+      "type": "string",
+      "enum": ["stopped", "starting", "running", "stopping", "error"]
+    },
+    "ToolDesiredState": {
+      "type": "string",
+      "enum": ["enabled", "disabled", "removed"]
+    },
+    "ToolObservedState": {
+      "type": "string",
+      "enum": [
+        "available_awaiting_verification",
+        "verifying",
+        "ready",
+        "pending_reboot",
+        "inactive",
+        "removed",
+        "unsupported",
+        "not_applicable",
+        "failed",
+        "unknown"
+      ]
+    },
+    "RiskTier": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "destructive_reversible",
+        "destructive_irreversible"
+      ]
+    },
+    "OperationState": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "in_progress",
+        "completed",
+        "failed",
+        "cancelled",
+        "partially_committed",
+        "cancellation_pending",
+        "timed_out"
+      ]
+    },
+    "ExecutionState": {
+      "type": "string",
+      "enum": ["stopped", "continuing", "unknown"]
+    },
+    "GuestOsRelease": {
+      "type": "object",
+      "required": ["api_level", "build_id", "variant"],
+      "properties": {
+        "api_level": { "type": "integer", "minimum": 21, "maximum": 36 },
+        "build_id": { "type": "string" },
+        "variant": { "type": "string", "enum": ["userdebug", "user"] }
+      },
+      "additionalProperties": false
+    },
+    "KernelDescriptor": {
+      "type": "object",
+      "required": ["release", "family", "flavor", "image_digest"],
+      "properties": {
+        "release": { "type": "string" },
+        "family": { "type": "string" },
+        "kmi_version": { "type": ["string", "null"] },
+        "flavor": { "$ref": "#/definitions/RootFlavor" },
+        "image_digest": { "$ref": "#/definitions/Sha256Digest" }
+      },
+      "additionalProperties": false
+    },
+    "MutationProposal": {
+      "type": "object",
+      "required": [
+        "proposal_digest",
+        "action",
+        "target_device_id",
+        "affected_resources",
+        "risk_tier",
+        "requires_reboot",
+        "invalidates_overlays",
+        "lossless",
+        "created_at",
+        "expires_at"
+      ],
+      "properties": {
+        "proposal_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "action": { "type": "string" },
+        "target_device_id": { "$ref": "#/definitions/ResearchDeviceId" },
+        "affected_resources": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "risk_tier": { "$ref": "#/definitions/RiskTier" },
+        "requires_reboot": { "type": "boolean" },
+        "invalidates_overlays": { "type": "boolean" },
+        "lossless": { "type": "boolean" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "expires_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "ResearchDevice": {
+      "type": "object",
+      "required": [
+        "id",
+        "backend",
+        "display_name",
+        "native_name",
+        "instance_dir",
+        "arch",
+        "guest_os",
+        "kernel",
+        "lifecycle_state",
+        "created_at",
+        "updated_at",
+        "last_settled_at"
+      ],
+      "properties": {
+        "id": { "$ref": "#/definitions/ResearchDeviceId" },
+        "backend": { "$ref": "#/definitions/BackendType" },
+        "display_name": { "type": "string" },
+        "native_name": { "type": "string" },
+        "instance_dir": { "type": "string" },
+        "arch": { "$ref": "#/definitions/CpuArchitecture" },
+        "guest_os": { "$ref": "#/definitions/GuestOsRelease" },
+        "kernel": { "$ref": "#/definitions/KernelDescriptor" },
+        "lifecycle_state": { "$ref": "#/definitions/DeviceLifecycleState" },
+        "adb_serial": { "type": ["string", "null"] },
+        "console_port": { "type": ["integer", "null"] },
+        "active_profile_id": { "type": ["string", "null"] },
+        "baseline_id": { "type": ["string", "null"] },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "last_settled_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "BackendCapabilityProfile": {
+      "type": "object",
+      "required": [
+        "backend",
+        "host_os",
+        "host_arch",
+        "hypervisor",
+        "support_status",
+        "required_binaries",
+        "required_entitlements",
+        "supported_guest_architectures",
+        "supports_kernel_injection",
+        "remediation_steps"
+      ],
+      "properties": {
+        "backend": { "$ref": "#/definitions/BackendType" },
+        "host_os": { "type": "string", "enum": ["linux", "macos", "windows"] },
+        "host_arch": { "$ref": "#/definitions/CpuArchitecture" },
+        "hypervisor": {
+          "type": "string",
+          "enum": ["kvm", "hypervisor_framework", "whpx", "none"]
+        },
+        "support_status": {
+          "type": "string",
+          "enum": ["supported", "unsupported", "experimental"]
+        },
+        "required_binaries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["binary_name", "found"],
+            "properties": {
+              "binary_name": { "type": "string" },
+              "found": { "type": "boolean" },
+              "version": { "type": ["string", "null"] },
+              "resolved_path": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "required_entitlements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "checked", "granted", "remediation_hint"],
+            "properties": {
+              "name": { "type": "string" },
+              "checked": { "type": "boolean" },
+              "granted": { "type": "boolean" },
+              "remediation_hint": { "type": "string" }
+            }
+          }
+        },
+        "supported_guest_architectures": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CpuArchitecture" }
+        },
+        "supports_kernel_injection": { "type": "boolean" },
+        "remediation_steps": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ApplicationScope": {
+      "type": "object",
+      "required": ["package_name", "role", "enabled_modules"],
+      "properties": {
+        "package_name": { "type": "string" },
+        "role": { "type": "string", "enum": ["target", "control"] },
+        "enabled_modules": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ResearchProfile": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "target_arch",
+        "target_api_level",
+        "root_flavor",
+        "frida_config",
+        "vector_config",
+        "extended_capabilities",
+        "app_scopes"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "target_backend": {
+          "anyOf": [{ "$ref": "#/definitions/BackendType" }, { "type": "null" }]
+        },
+        "target_arch": { "$ref": "#/definitions/CpuArchitecture" },
+        "target_api_level": { "type": "integer" },
+        "root_flavor": { "$ref": "#/definitions/RootFlavor" },
+        "root_config": {
+          "type": ["object", "null"],
+          "properties": {
+            "kernel_artifact_id": { "type": "string" },
+            "manager_apk_artifact_id": { "type": "string" }
+          }
+        },
+        "frida_config": {
+          "type": "object",
+          "required": ["enabled", "version"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "version": { "type": "string", "const": "17.18.0" },
+            "daemon_artifact_id": { "type": ["string", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "vector_config": {
+          "type": "object",
+          "required": ["enabled", "version", "neozygisk_version", "modules"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "version": { "type": "string", "const": "2.2" },
+            "neozygisk_version": { "type": "string", "const": "2.4" },
+            "daemon_artifact_id": { "type": ["string", "null"] },
+            "modules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["module_id", "artifact_id", "enabled"],
+                "properties": {
+                  "module_id": { "type": "string" },
+                  "artifact_id": { "type": "string" },
+                  "enabled": { "type": "boolean" }
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "extended_capabilities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["catalog_id", "enabled", "parameters"],
+            "properties": {
+              "catalog_id": { "type": "string" },
+              "enabled": { "type": "boolean" },
+              "parameters": { "type": "object" },
+              "artifact_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "app_scopes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ApplicationScope" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ResearchToolState": {
+      "type": "object",
+      "required": [
+        "tool_id",
+        "tool_family",
+        "desired_state",
+        "observed_state",
+        "interface_details",
+        "requires_reboot",
+        "diagnostics"
+      ],
+      "properties": {
+        "tool_id": { "type": "string" },
+        "tool_family": {
+          "type": "string",
+          "enum": [
+            "root_privilege",
+            "dynamic_instrumentation",
+            "hooking_framework",
+            "hooking_module",
+            "extended_kernel_capability"
+          ]
+        },
+        "desired_state": { "$ref": "#/definitions/ToolDesiredState" },
+        "observed_state": { "$ref": "#/definitions/ToolObservedState" },
+        "observed_version": { "type": ["string", "null"] },
+        "interface_details": { "type": "object" },
+        "requires_reboot": { "type": "boolean" },
+        "verification_details": {
+          "type": ["object", "null"],
+          "properties": {
+            "verified_at": { "type": "string", "format": "date-time" },
+            "probe_type": { "type": "string" },
+            "passed": { "type": "boolean" },
+            "summary": { "type": "string" }
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ArtifactPackage": {
+      "type": "object",
+      "required": [
+        "id",
+        "package_type",
+        "file_path",
+        "sha256_digest",
+        "target_arch",
+        "trust_status"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "package_type": {
+          "type": "string",
+          "enum": [
+            "kernel_image",
+            "initramfs",
+            "manager_apk",
+            "daemon_binary",
+            "xposed_module",
+            "container_runtime_bundle",
+            "metamodule_tar"
+          ]
+        },
+        "file_path": { "type": "string" },
+        "sha256_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "target_arch": { "$ref": "#/definitions/CpuArchitecture" },
+        "api_level_min": { "type": ["integer", "null"] },
+        "api_level_max": { "type": ["integer", "null"] },
+        "kernel_family": { "type": ["string", "null"] },
+        "kmi_version": { "type": ["string", "null"] },
+        "virtual_platform_abi": { "type": ["string", "null"] },
+        "trust_status": {
+          "type": "string",
+          "enum": [
+            "verified_trusted",
+            "unverified_trust",
+            "digest_mismatch_corrupt"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "RecoveryBaseline": {
+      "type": "object",
+      "required": [
+        "id",
+        "device_id",
+        "created_at",
+        "system_image_digest",
+        "kernel_image_digest",
+        "clean_storage_snapshot_ref",
+        "verified"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "device_id": { "$ref": "#/definitions/ResearchDeviceId" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "system_image_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "kernel_image_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "initramfs_digest": {
+          "anyOf": [
+            { "$ref": "#/definitions/Sha256Digest" },
+            { "type": "null" }
+          ]
+        },
+        "clean_storage_snapshot_ref": { "type": "string" },
+        "verified": { "type": "boolean" },
+        "verification_timestamp": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ExperimentProvenanceRecord": {
+      "type": "object",
+      "required": [
+        "id",
+        "device_id",
+        "backend",
+        "guest_os",
+        "kernel_release",
+        "kernel_digest",
+        "root_flavor",
+        "tool_states",
+        "artifact_fingerprints",
+        "app_scopes",
+        "launch_parameters",
+        "environment_digest",
+        "captured_at"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "device_id": { "$ref": "#/definitions/ResearchDeviceId" },
+        "backend": { "$ref": "#/definitions/BackendType" },
+        "guest_os": { "$ref": "#/definitions/GuestOsRelease" },
+        "kernel_release": { "type": "string" },
+        "kernel_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "root_flavor": { "$ref": "#/definitions/RootFlavor" },
+        "tool_states": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ResearchToolState" }
+        },
+        "artifact_fingerprints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["artifact_id", "package_type", "sha256_digest"],
+            "properties": {
+              "artifact_id": { "type": "string" },
+              "package_type": { "type": "string" },
+              "sha256_digest": { "$ref": "#/definitions/Sha256Digest" }
+            }
+          }
+        },
+        "app_scopes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ApplicationScope" }
+        },
+        "launch_parameters": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "environment_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "captured_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "OperationRecord": {
+      "type": "object",
+      "required": [
+        "operation_id",
+        "command_type",
+        "target_device_id",
+        "state",
+        "execution_state",
+        "started_at",
+        "updated_at",
+        "partial_modifications"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "pattern": "^op_[0-9A-Za-z]+$"
+        },
+        "command_type": { "type": "string" },
+        "target_device_id": { "$ref": "#/definitions/ResearchDeviceId" },
+        "state": { "$ref": "#/definitions/OperationState" },
+        "execution_state": { "$ref": "#/definitions/ExecutionState" },
+        "deadline_seconds": { "type": ["integer", "null"] },
+        "proposal_id": { "type": ["string", "null"] },
+        "authorized_by_digest": {
+          "anyOf": [
+            { "$ref": "#/definitions/Sha256Digest" },
+            { "type": "null" }
+          ]
+        },
+        "started_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "completed_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "partial_modifications": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "checkpoint": { "type": ["string", "null"] },
+        "error": {
+          "anyOf": [{ "$ref": "#/definitions/ErrorRecord" }, { "type": "null" }]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
