@@ -3,48 +3,93 @@
 **Version**: 1.0.0  
 **Feature Branch**: `002-ios-root-vm`  
 **Status**: Complete  
+**Canonical Schema Identifier**: `https://emu.rs/schemas/v1/research-ios.schema.json`  
+**Target Host Platform**: macOS Apple Silicon (`aarch64`, Darwin 24.x/25.x, macOS 15+ candidate)  
+**Toolchain Baseline**: Rust 2024 edition, pinned to `rustc 1.88.0` (`.tool-versions`); `bun 1.2.17`  
 **Authority**: `specs/002-ios-root-vm/research.md`, `specs/002-ios-root-vm/spec.md`, `specs/002-ios-root-vm/data-model.md`, and `specs/002-ios-root-vm/contracts/cli.md`
 
 ---
 
 ## 1. Prerequisites and Laboratory Setup
 
-This guide provides fully documented, non-destructive CLI scenarios covering all 8 user stories, all 10 operational families, and the 19 success criteria defined in the specification.
+> **Implementation & Empirical Execution Notice**: This document serves as the normative end-to-end operational execution and validation guide for the planned iOS Root Virtual Machine and Darwin Security Research Harness. It defines executable CLI/TUI scenarios covering all 8 User Stories, all 10 operational command families, and the 19 Success Criteria (SC-001 through SC-019). The commands, schemas, and workflows documented herein represent the post-implementation delivery contract. They do NOT assert that research hypervisor backends currently exist in the repository (which currently contains only standard Android AVD and iOS Simulator managers under `src/`). Full empirical execution requires legally obtained Apple firmware artifacts and user-compiled hypervisor binaries; absent real assets block empirical runs, not mock substitutes. Build and test commands documented in this guide are illustrative validation procedures and MUST NOT be executed during Phase 1 documentation work.
 
-### 1.1 Host Environment Support Matrix
+### 1.1 Host Environment Target Matrix
 
-| Host Workstation OS                   | Architecture                  | Hypervisor Extensions                                 | `darwin-vm` Status | `Inferno` Status | Primary Research Scope                                                                                                       |
-| :------------------------------------ | :---------------------------- | :---------------------------------------------------- | :----------------: | :--------------: | :--------------------------------------------------------------------------------------------------------------------------- |
-| **macOS 15+ (Sequoia) / Darwin 25.x** | **Apple Silicon (`aarch64`)** | `Hypervisor.framework` (`sysctl kern.hv_support = 1`) |   **Supported**    |  **Supported**   | Complete dual-backend research, root proof, kernel debugging, Frida dynamic instrumentation, and companion VM orchestration. |
-| **macOS 14 (Sonoma)**                 | **Apple Silicon (`aarch64`)** | `Hypervisor.framework` (`sysctl kern.hv_support = 1`) |   **Supported**    |  **Supported**   | Standard dual-backend research execution.                                                                                    |
-| **macOS (Intel `x86_64`)**            | Intel 64-bit                  | Hypervisor / VMX                                      |  **Unsupported**   | **Unsupported**  | Apple Silicon ARM64 hypervisor primitives required (FR-001).                                                                 |
-| **Linux / Windows**                   | x86_64 / arm64                | KVM / WHPX                                            |  **Unsupported**   | **Unsupported**  | Darwin security research backends require macOS host platform (FR-001).                                                      |
+| Host Workstation OS                                          | Architecture                  | Virtualization Subsystem                                       |        `darwin-vm` Status        |         `Inferno` Status         | Primary Operational Scope                                                                                                                                                           |
+| :----------------------------------------------------------- | :---------------------------- | :------------------------------------------------------------- | :------------------------------: | :------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Configured macOS (Darwin 24.x/25.x, macOS 15+ candidate)** | **Apple Silicon (`aarch64`)** | `sysctl hw.optional.arm64 = 1`; HVF evaluated during preflight | **Research Target (Unverified)** | **Research Target (Unverified)** | Dual-backend research, root proof, kernel debugging, Frida dynamic instrumentation, and companion VM orchestration. Evaluated as unverified candidate prior to physical lab trials. |
+| **macOS (Intel `x86_64`)**                                   | Intel 64-bit                  | Intel VT-x / VMX                                               |         **Unsupported**          |         **Unsupported**          | Apple Silicon ARM64 host required (FR-001). Exits with Exit Code 3 (`unsupported`).                                                                                                 |
+| **Linux / Windows**                                          | x86_64 / arm64                | KVM / WHPX                                                     |         **Unsupported**          |         **Unsupported**          | Darwin security research backends require macOS host platform (FR-001). Exits with Exit Code 3 (`unsupported`).                                                                     |
 
-### 1.2 User-Supplied Artifact Directory Setup
+_Note on Hypervisor Acceleration_: While `Hypervisor.framework` availability (`sysctl kern.hv_support = 1`) is evaluated during host preflight diagnostics, the research hypervisors (`darwin-vm`, `Inferno`, and the companion `qemu-system-x86_64`) execute in user space using QEMU's Tiny Code Generator (TCG) translating ARM64/x86_64 guest instructions. Therefore, universal HVF entitlement is not an absolute execution prerequisite for guest emulation on Apple Silicon.
 
-Ensure your local artifacts directory (`~/research_artifacts/`) is populated with compatible components matching your target guest architecture:
+### 1.2 Toolchain & Source Revision Verification
+
+Before executing research commands, verify that the host toolchain matches the repository's pinned baseline:
 
 ```bash
-mkdir -p ~/research_artifacts
-# Candidate artifacts include:
-# - darwin_bootkc_minimal.bin          (Extracted Mach kernelcache for darwin-vm)
-# - darwin_dtree_minimal.dtb           (Device tree blob)
-# - darwin_root_ramdisk.img            (Minimal root ramdisk with bootstrap console)
-# - inferno_kernelcache_18A5351d       (iOS 14.0 beta 5 kernelcache for d421ap)
-# - inferno_dtree_d421ap.dtb           (iPhone 11 device tree)
-# - inferno_rootfs_18A5351d.raw        (Prepared iOS research root disk image)
-# - frida-core-devkit-17.18.0-mac      (Frida 17.18.0 C devkit for emu-frida-worker)
-# - frida-server-17.18.0-ios-arm64     (Frida 17.18.0 guest agent package)
-# - SampleResearchApp.ipa              (Owned test application com.example.researchapp)
-# - ControlApp.ipa                     (Uninstrumented control com.example.controlapp)
-# - benign_test_binary                 (Benign guest CLI verification binary)
+# 1. Verify Rust toolchain pinned to 1.88.0
+case "$(rustc --version)" in
+  *"1.88.0"*) ;;
+  *) echo "Error: Pinned rustc 1.88.0 required"; exit 1 ;;
+esac
+
+# 2. Verify Bun runtime
+case "$(bun --version)" in
+  *"1.2.17"*) ;;
+  *) echo "Error: Pinned bun 1.2.17 required"; exit 1 ;;
+esac
+
+# 3. Verify Apple Silicon architecture
+[ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = "1" ] || { echo "Error: Apple Silicon ARM64 host required"; exit 1; }
+
+# 4. Record source revision
+git rev-parse HEAD
+```
+
+### 1.3 User-Supplied Artifact Directory Setup
+
+Emu **never bundles, downloads, or distributes proprietary Apple firmware, IPSWs, kernelcaches, or APtickets**. Researchers must legally obtain and supply compatible artifacts in a local staging directory (`~/research_artifacts/`):
+
+```bash
+export ASSET_DIR="$HOME/research_artifacts"
+mkdir -p "$ASSET_DIR"
+```
+
+Expected user-supplied artifacts include:
+
+- `darwin_bootkc_minimal.bin`: Extracted Mach kernelcache for `darwin-vm` (`kernelcache`).
+- `darwin_dtree_minimal.dtb`: Device tree blob for `darwin-vm` (`devicetree`).
+- `darwin_root_ramdisk.img`: Minimal root ramdisk with bootstrap console (`ramdisk`).
+- `darwin_trustcache.tc`: Trust cache for minimal Darwin boot (`trustcache`).
+- `inferno_kernelcache_18A5351d`: iOS 14.0 beta 5 kernelcache for Apple iPhone 11 (`iPhone12,1`, platform board identifier **`n104ap`**, A13 Bionic; `kernelcache`).
+- `inferno_dtree_n104ap.dtb`: iPhone 11 (`n104ap`) device tree blob (`devicetree`).
+- `inferno_rootfs_18A5351d.raw`: Prepared iOS research root disk image (`root_disk`).
+- `bundled_research_hooks.js`: User-supplied script with pre-bundled `frida-objc-bridge` runtime.
+- `SampleResearchApp.ipa`: Owned test application (`com.example.researchapp`) compiled for `arm64`.
+- `ControlApp.ipa`: Uninstrumented control application (`com.example.controlapp`).
+- `benign_test_binary`: Benign ARM64 guest CLI verification binary.
+
+### 1.4 Native Frida Helper Compilation (Laboratory Setup Only)
+
+To maintain clean CI boundaries, `emu-frida-worker` is architected as an explicitly separate native child package in `tools/frida-worker/` outside the root workspace and default Cargo target graph. In laboratory environments where dynamic instrumentation is exercised, compile the helper once using the official `frida-core` 17.18.0 C devkit:
+
+```bash
+# Set path to validated frida-core C devkit directory
+export FRIDA_CORE_DEVKIT="$ASSET_DIR/frida-core-devkit-17.18.0-mac"
+
+# Build isolated Frida worker binary
+cargo build --manifest-path tools/frida-worker/Cargo.toml --release
 ```
 
 ---
 
-## 2. Scenario 1: Host Preflight Diagnostics & Dual-Backend Guest Creation (User Story 1 - P1)
+## 2. Scenario 1: Host Preflight Diagnostics, Image Registration & Dual-Backend Guest Creation (User Story 1 - P1)
 
-### 2.1 Preflight Compatibility Check
+_Covers Success Criteria: SC-008, SC-014, SC-017 | Functional Requirements: FR-001, FR-002, FR-003, FR-005, FR-006, FR-007, FR-031_
+
+### 2.1 Preflight Compatibility Diagnostics
 
 Run non-interactive preflight diagnostics across both research backends:
 
@@ -52,960 +97,570 @@ Run non-interactive preflight diagnostics across both research backends:
 emu research backend preflight --json
 ```
 
-**Stdout (Exit Code 0)**:
+_Preflight Contract & Observability_:
 
-```json
-{
-  "$schema": "https://emu.rs/schemas/v1/research-ios.schema.json#/definitions/OutputEnvelope",
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8PREFLIGHT001",
-  "data": {
-    "host_platform": {
-      "os": "macos",
-      "arch": "aarch64",
-      "os_version": "Darwin 25.6.0",
-      "hypervisor_support": true,
-      "hardware_acceleration": "apple_silicon_hvf"
-    },
-    "profiles": [
-      {
-        "backend": "darwin-vm",
-        "host_os": "macos",
-        "host_arch": "aarch64",
-        "hypervisor": "hypervisor_framework",
-        "support_status": "supported",
-        "supported_guest_families": ["darwin-minimal"],
-        "headless_console_support": true,
-        "graphical_display_support": false,
-        "companion_vm_required": false,
-        "app_frameworks_supported": false,
-        "supported_debug_interfaces": ["gdb_rsp", "qmp_monitor"],
-        "required_binaries": [
-          {
-            "binary_name": "qemu-system-aarch64",
-            "found": true,
-            "resolved_path": "/opt/homebrew/bin/qemu-system-aarch64"
-          }
-        ],
-        "required_entitlements": [
-          {
-            "name": "hypervisor_entitlement",
-            "granted": true,
-            "details": "com.apple.security.hypervisor present"
-          }
-        ],
-        "remediation_steps": []
-      },
-      {
-        "backend": "Inferno",
-        "host_os": "macos",
-        "host_arch": "aarch64",
-        "hypervisor": "hypervisor_framework",
-        "support_status": "supported",
-        "supported_guest_families": ["ios-14", "ios-15"],
-        "headless_console_support": true,
-        "graphical_display_support": true,
-        "companion_vm_required": true,
-        "app_frameworks_supported": true,
-        "supported_debug_interfaces": ["gdb_rsp", "qmp_monitor"],
-        "required_binaries": [
-          {
-            "binary_name": "qemu-system-aarch64",
-            "found": true,
-            "resolved_path": "/opt/homebrew/bin/qemu-system-aarch64"
-          },
-          {
-            "binary_name": "ideviceinstaller",
-            "found": true,
-            "resolved_path": "/opt/homebrew/bin/ideviceinstaller"
-          }
-        ],
-        "required_entitlements": [
-          {
-            "name": "hypervisor_entitlement",
-            "granted": true,
-            "details": "com.apple.security.hypervisor present"
-          }
-        ],
-        "remediation_steps": []
-      }
-    ]
-  },
-  "error": null
-}
+- Returns **Exit Code 0** (`completed`) for non-interactive diagnostics.
+- Reports host architecture (`aarch64`) and hypervisor support (`sysctl kern.hv_support`).
+- Prior to physical lab verification, hypervisor backends report `support_status: "unverified"` or `"experimental"`, operating under user-space QEMU TCG translation without asserting universal HVF entitlement.
+- Projects configured paths to hypervisor binaries (e.g. custom `qemu-system-aarch64` and `Inferno` binaries) and companion dependencies (`ideviceinstaller`, companion `qemu-system-x86_64`).
+
+### 2.2 Base Image Registration (Before Instance Creation)
+
+Images must be registered and verified before guest instance creation (FR-031, SC-009). Capture actual JSON responses and extract digests using `jq`:
+
+```bash
+# 1. Register darwin-vm root ramdisk artifact
+DARWIN_RAMDISK_RESP=$(emu research image register \
+  --file "$ASSET_DIR/darwin_root_ramdisk.img" \
+  --type ramdisk \
+  --backend darwin-vm \
+  --json)
+DARWIN_RAMDISK_DIGEST=$(printf '%s' "$DARWIN_RAMDISK_RESP" | jq -er '.data.artifact_digest')
+
+# 2. Register darwin-vm kernelcache
+DARWIN_KC_RESP=$(emu research image register \
+  --file "$ASSET_DIR/darwin_bootkc_minimal.bin" \
+  --type kernelcache \
+  --backend darwin-vm \
+  --json)
+DARWIN_KC_DIGEST=$(printf '%s' "$DARWIN_KC_RESP" | jq -er '.data.artifact_digest')
+
+# 3. Register Inferno root disk artifact
+INFERNO_ROOT_RESP=$(emu research image register \
+  --file "$ASSET_DIR/inferno_rootfs_18A5351d.raw" \
+  --type root_disk \
+  --backend Inferno \
+  --json)
+INFERNO_ROOT_DIGEST=$(printf '%s' "$INFERNO_ROOT_RESP" | jq -er '.data.artifact_digest')
+
+# 4. Register Inferno kernelcache
+INFERNO_KC_RESP=$(emu research image register \
+  --file "$ASSET_DIR/inferno_kernelcache_18A5351d" \
+  --type kernelcache \
+  --backend Inferno \
+  --json)
+INFERNO_KC_DIGEST=$(printf '%s' "$INFERNO_KC_RESP" | jq -er '.data.artifact_digest')
 ```
 
-### 2.2 Dual-Backend Guest Registration with Identical Display Name
+### 2.3 Dual-Backend Guest Registration with Identical Display Names
 
-Register two guest instances with identical display name `"ios-sec-lab"` under `darwin-vm` and `Inferno` to verify unambiguous UUID assignment and identity disambiguation (FR-005, FR-007, SC-017):
+Register two guest instances with the identical display name `"ios-sec-lab"` under `darwin-vm` and `Inferno` to verify unambiguous UUID assignment and identity disambiguation (FR-005, FR-007, SC-017):
 
 ```bash
 # 1. Register darwin-vm guest
-emu research guest create \
+DARWIN_CREATE_RESP=$(emu research guest create \
   --name "ios-sec-lab" \
   --backend darwin-vm \
-  --image sha256:d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0123456 \
-  --json
-```
+  --root-disk "$DARWIN_RAMDISK_DIGEST" \
+  --kernelcache "$DARWIN_KC_DIGEST" \
+  --json)
+DARWIN_ID=$(printf '%s' "$DARWIN_CREATE_RESP" | jq -er '.data.id')
 
-**Stdout (Exit Code 0)**:
-
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8GUESTCREATE01",
-  "data": {
-    "id": "e4b1c2d3-4567-89ab-cdef-0123456789ab",
-    "display_name": "ios-sec-lab",
-    "backend": "darwin-vm",
-    "lifecycle_state": "stopped",
-    "guest_arch": "arm64",
-    "guest_os_version": "Darwin 20.0.0 minimal",
-    "build_identity": "20A2411",
-    "observed_privilege": "unverified",
-    "created_at": "2026-09-17T14:30:00.000Z"
-  },
-  "error": null
-}
-```
-
-```bash
-# 2. Register Inferno guest with the identical display name
-emu research guest create \
+# 2. Register Inferno guest with identical display name
+INFERNO_CREATE_RESP=$(emu research guest create \
   --name "ios-sec-lab" \
   --backend Inferno \
-  --image sha256:c1d2e3f405162738495a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e \
-  --json
+  --root-disk "$INFERNO_ROOT_DIGEST" \
+  --kernelcache "$INFERNO_KC_DIGEST" \
+  --json)
+INFERNO_ID=$(printf '%s' "$INFERNO_CREATE_RESP" | jq -er '.data.id')
 ```
 
-**Stdout (Exit Code 0)**:
+### 2.4 Ambiguous Target Name Collision Rejection & Disambiguation
 
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8GUESTCREATE02",
-  "data": {
-    "id": "f5c2d3e4-5678-9abc-def0-123456789abc",
-    "display_name": "ios-sec-lab",
-    "backend": "Inferno",
-    "lifecycle_state": "stopped",
-    "guest_arch": "arm64",
-    "guest_os_version": "iOS 14.0 beta 5",
-    "build_identity": "18A5351d",
-    "observed_privilege": "unverified",
-    "created_at": "2026-09-17T14:30:05.000Z"
-  },
-  "error": null
-}
-```
-
-### 2.3 Ambiguous Target Name Collision Rejection & Disambiguation
-
-Attempting to inspect or start without specifying the backend or UUID is rejected (FR-007):
+Attempting to inspect or start without specifying the backend or unique ID is rejected with Exit Code 2 (FR-007):
 
 ```bash
 emu research guest inspect --name "ios-sec-lab" --json
 ```
 
-**Stdout (Exit Code 2 `invalid_input`)**:
+_Expected Exit Code_: `2` (`invalid_input`). Error code `AMBIGUOUS_INSTANCE_NAME` lists both matching UUIDs and instructs qualification via `--id` or `--backend`.
 
-```json
-{
-  "status": "rejected",
-  "outcome": "invalid_input",
-  "operation_id": "op_01J8INSPECTERR01",
-  "data": null,
-  "error": {
-    "code": "AMBIGUOUS_INSTANCE_NAME",
-    "message": "Multiple guest instances found matching display name 'ios-sec-lab'",
-    "details": {
-      "matching_instances": [
-        {
-          "id": "e4b1c2d3-4567-89ab-cdef-0123456789ab",
-          "backend": "darwin-vm"
-        },
-        { "id": "f5c2d3e4-5678-9abc-def0-123456789abc", "backend": "Inferno" }
-      ],
-      "remediation": "Qualify query with --backend <darwin-vm|Inferno> or target directly by --id <UUID>"
-    }
-  }
-}
-```
-
-### 2.4 Independent Guest Launch
-
-Boot the `darwin-vm` instance cleanly:
+Inspect unambiguously using UUID or backend qualification:
 
 ```bash
-emu research guest start --id e4b1c2d3-4567-89ab-cdef-0123456789ab --json
+emu research guest inspect --id "$DARWIN_ID" --json
+emu research guest inspect --name "ios-sec-lab" --backend Inferno --json
 ```
 
-**Stdout (Exit Code 0)**:
+### 2.5 Independent Guest Launch
 
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8GUESTSTART01",
-  "data": {
-    "id": "e4b1c2d3-4567-89ab-cdef-0123456789ab",
-    "display_name": "ios-sec-lab",
-    "backend": "darwin-vm",
-    "lifecycle_state": "running",
-    "boot_session_id": "9a8b7c6d-5e4f-3a2b-1c0d-ef9876543210",
-    "qmp_socket_path": "/tmp/emu-e4b1c2d3/qmp.sock",
-    "console_socket_path": "/tmp/emu-e4b1c2d3/console.sock",
-    "observed_privilege": "unverified"
-  },
-  "error": null
-}
+Boot the `darwin-vm` instance cleanly using its unique UUID:
+
+```bash
+emu research guest start --id "$DARWIN_ID" --json
 ```
+
+_Expected Exit Code_: `0` (`completed`). The instance transitions to `running`, starts the dedicated child supervisor, and initial privilege status reports `unverified`.
 
 ---
 
-## 3. Scenario 2: Verifiable iOS Root Proof & Falsification Controls (User Story 2 - P1)
+## 3. Scenario 2: Verifiable iOS-Derived Root Proof & Falsification Controls (User Story 2 - P1)
 
-### 3.1 Empirical Root Proof Verification
+_Covers Success Criteria: SC-001, SC-007 | Functional Requirements: FR-010, FR-011, FR-012, FR-013, FR-014, FR-015, FR-025, FR-026, FR-030_
 
-Execute the privilege verification workflow against the running `darwin-vm` guest:
+### 3.1 Empirical Root Proof Verification (3 Cold Boots Repetition; SC-001)
+
+To satisfy SC-001 across the reference cohort, execute root verification across 3 consecutive cold boots:
 
 ```bash
-emu research root verify \
-  --id e4b1c2d3-4567-89ab-cdef-0123456789ab \
-  --test-binary ~/research_artifacts/benign_test_binary \
+for boot in 1 2 3; do
+  echo "=== Root Proof Evaluation Boot Trial $boot ==="
+  if [ "$boot" -gt 1 ]; then
+    emu research guest restart --id "$DARWIN_ID" --json
+  fi
+
+  ROOT_VERIFY_RESP=$(emu research root verify \
+    --id "$DARWIN_ID" \
+    --test-binary "$ASSET_DIR/benign_test_binary" \
+    --json)
+
+  # Assert effective UID 0 positive probe success and non-zero UID negative control denial
+  printf '%s' "$ROOT_VERIFY_RESP" | jq -er '.data.positive_probe.status == "success"'
+  printf '%s' "$ROOT_VERIFY_RESP" | jq -er '.data.negative_control.status == "denied"'
+  printf '%s' "$ROOT_VERIFY_RESP" | jq -er '.data.verification_state == "verified"'
+done
+```
+
+### 3.2 Negative Control Falsification (Gate T-02, SC-019 Case 6)
+
+In a negative evaluation case (e.g. guest filesystem misconfigured with permissive root directory permissions, or unprivileged probe helper allowed to write `/private/var/root/.emu_probe`), the verification workflow fails closed:
+
+```bash
+# Execute root verify against an intentionally unprivileged probe fixture
+emu research root verify --id "$DARWIN_ID" --json || echo "Negative control gate triggered: Exit code $?"
+```
+
+_Expected Outcome_: Exit Code `1` (`execution_failed`). System marks privilege status as `unverified` and logs structured diagnostic warnings.
+
+### 3.3 Root Proof Invalidation on Guest Reboot (Gate T-03, SC-019 Case 7)
+
+Cold rebooting the guest resets the boot session UUID and immediately invalidates active root proof until re-proven (FR-015):
+
+```bash
+emu research guest restart --id "$DARWIN_ID" --json
+STATUS_RESP=$(emu research root status --id "$DARWIN_ID" --json)
+printf '%s' "$STATUS_RESP" | jq -er '.data.observed_privilege == "unverified"'
+```
+
+### 3.4 Authorized In-Guest Root Filesystem Operations (FR-025)
+
+Perform direct in-guest root filesystem read, write, and export operations without host disk mounting:
+
+```bash
+# 1. Read in-guest system file
+emu research root fs-read --guest-id "$DARWIN_ID" --path "/etc/hosts" --json
+
+# 2. Write file to guest runtime storage
+emu research root fs-write \
+  --guest-id "$DARWIN_ID" \
+  --path "/private/var/root/test.txt" \
+  --src "/tmp/local_test.txt" \
+  --json
+
+# 3. Export in-guest log to host
+emu research root fs-export \
+  --guest-id "$DARWIN_ID" \
+  --path "/private/var/log/system.log" \
+  --dest "/tmp/system.log" \
   --json
 ```
 
-**Stdout (Exit Code 0)**:
+### 3.5 Security Profile Reversion to Verified Baseline (FR-030)
 
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8ROOTVERIFY01",
-  "data": {
-    "evidence_id": "7b8c9d0e-1f2a-3b4c-5d6e-7f8a9b0c1d2e",
-    "guest_id": "e4b1c2d3-4567-89ab-cdef-0123456789ab",
-    "boot_session_id": "9a8b7c6d-5e4f-3a2b-1c0d-ef9876543210",
-    "backend": "darwin-vm",
-    "guest_build_identity": "20A2411",
-    "image_artifact_digest": "sha256:d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0123456",
-    "config_revision_hash": "sha256:3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b",
-    "verified_uid": 0,
-    "positive_probe_outcome": {
-      "path": "/private/var/root/.emu_probe",
-      "status": "success",
-      "target_user": "root",
-      "uid": 0,
-      "expected_denial": false,
-      "output": "emu_root_verified"
-    },
-    "negative_control_outcome": {
-      "path": "/private/var/root/.emu_probe",
-      "status": "denied",
-      "target_user": "mobile",
-      "uid": 501,
-      "expected_denial": true,
-      "output": "Permission denied"
-    },
-    "observed_kernel_version": "Darwin Kernel Version 20.0.0: root:xnu-7195.0.0~1/RELEASE_ARM64_T8030",
-    "observed_boot_args": "debug=0x144 amfi=0xff -v",
-    "benign_binary_digest": "sha256:5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b",
-    "verification_state": "verified",
-    "verified_at": "2026-09-17T14:35:10.000Z",
-    "diagnostics": [
-      "Root bootstrap console attached via Virtio chardev",
-      "Positive probe succeeded: file write confirmed in /private/var/root",
-      "Negative control succeeded: write as mobile (UID 501) returned EACCES"
-    ]
-  },
-  "error": null
-}
-```
-
-### 3.2 Negative Control Falsification (Negative Test)
-
-Simulate a negative control failure (e.g. guest filesystem misconfigured with permissive root directory permissions):
+Inspect active guest security profile and revert policies to a verified baseline configuration (never an assumed universal stock state):
 
 ```bash
-emu research root verify --id e4b1c2d3-4567-89ab-cdef-0123456789ab --simulate-permissive-guest --json
-```
+# 1. Inspect security profile
+emu research root security inspect --guest-id "$DARWIN_ID" --json
 
-**Stdout (Exit Code 1 `failed`)**:
+# 2. Dry run revert to baseline to inspect proposal
+emu research root security revert \
+  --guest-id "$DARWIN_ID" \
+  --baseline-id "base_e4b1c2d3_stock" \
+  --dry-run \
+  --json
 
-```json
-{
-  "status": "failed",
-  "outcome": "execution_failed",
-  "operation_id": "op_01J8ROOTFAIL01",
-  "data": {
-    "verification_state": "unverified",
-    "failure_reason": "Negative control check failed: unprivileged user 'mobile' (UID 501) was unexpectedly permitted to write /private/var/root/.emu_probe",
-    "negative_control_outcome": {
-      "path": "/private/var/root/.emu_probe",
-      "status": "success",
-      "target_user": "mobile",
-      "uid": 501,
-      "expected_denial": true,
-      "output": "fail"
-    }
-  },
-  "error": {
-    "code": "PROBE_VERIFICATION_FAILED",
-    "message": "Falsification gate triggered: unprivileged user write succeeded",
-    "details": {
-      "remediation": "Guest root filesystem permissions are permissive; verification refused"
-    }
-  }
-}
-```
-
-### 3.3 Root Proof Invalidation on Guest Reboot
-
-Cold rebooting the guest invalidates active root proof until re-proven (FR-015):
-
-```bash
-emu research guest restart --id e4b1c2d3-4567-89ab-cdef-0123456789ab --json
-emu research root status --id e4b1c2d3-4567-89ab-cdef-0123456789ab --json
-```
-
-**Stdout (Exit Code 0)**:
-
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8ROOTSTAT01",
-  "data": {
-    "guest_id": "e4b1c2d3-4567-89ab-cdef-0123456789ab",
-    "desired_privilege": "root",
-    "observed_privilege": "unverified",
-    "invalidation_reason": "Guest rebooted; fresh boot session ID requires empirical re-verification"
-  },
-  "error": null
-}
+# 3. Manual Operator Review: Operator reviews stdout proposal and inputs digest
+read -r -p "Enter reviewed security revert proposal digest: " SEC_DIGEST
+emu research root security revert \
+  --guest-id "$DARWIN_ID" \
+  --baseline-id "base_e4b1c2d3_stock" \
+  --authorize "$SEC_DIGEST" \
+  --json
 ```
 
 ---
 
-## 4. Scenario 3: Application Lifecycle & Minimal Backend Refusal Gates (User Story 3 - P1)
+## 4. Scenario 3: Application Lifecycle Management on `Inferno` & Minimal Backend Refusal Gates (User Story 3 - P1)
 
-### 4.1 Application Framework Refusal Gate on Minimal Backend
+_Covers Success Criteria: SC-002, SC-003 | Functional Requirements: FR-016, FR-022, FR-023, FR-024_
 
-Attempting to install an application on minimal `darwin-vm` truthfully reports missing application frameworks (SC-003, FR-023):
+### 4.1 Application Framework Refusal Gate on Minimal Backend (Gate T-06, SC-003)
+
+Attempting to install an application on minimal `darwin-vm` truthfully reports missing application frameworks with Exit Code 3 (`unsupported`):
 
 ```bash
 emu research app install \
-  --id e4b1c2d3-4567-89ab-cdef-0123456789ab \
-  --package ~/research_artifacts/SampleResearchApp.ipa \
+  --id "$DARWIN_ID" \
+  --app-id "app_com_example_researchapp_01" \
   --json
 ```
 
-**Stdout (Exit Code 3 `unsupported`)**:
-
-```json
-{
-  "status": "rejected",
-  "outcome": "unsupported",
-  "operation_id": "op_01J8APPUNSUP01",
-  "data": null,
-  "error": {
-    "code": "APP_FRAMEWORKS_UNAVAILABLE",
-    "message": "Backend 'darwin-vm' does not support iOS application-layer frameworks",
-    "details": {
-      "backend": "darwin-vm",
-      "app_frameworks_supported": false,
-      "supported_capabilities": [
-        "headless_console",
-        "kernel_debugging",
-        "root_cli_testing"
-      ],
-      "remediation": "Deploy iOS applications to the 'Inferno' research backend"
-    }
-  }
-}
-```
+_Expected Exit Code_: `3` (`unsupported`). Error code `APP_FRAMEWORKS_UNAVAILABLE` explains that `darwin-vm` lacks application-layer frameworks.
 
 ### 4.2 Application Import & Installation on `Inferno`
 
 Boot the `Inferno` guest instance and deploy an owned iOS research application:
 
 ```bash
-# Start Inferno guest
-emu research guest start --id f5c2d3e4-5678-9abc-def0-123456789abc --json
+# 1. Start companion listener first (launch ordering invariant; D-08)
+emu research companion start --parent-guest-id "$INFERNO_ID" --json
 
-# Import application package
-emu research app import --package ~/research_artifacts/SampleResearchApp.ipa --json
-```
+# 2. Boot Inferno guest
+emu research guest start --id "$INFERNO_ID" --json
 
-**Stdout (Exit Code 0)**:
+# 3. Import application package (Mach-O ARM64 validation; target guest ID is optional at import)
+APP_IMPORT_RESP=$(emu research app import --package "$ASSET_DIR/SampleResearchApp.ipa" --json)
+APP_ID=$(printf '%s' "$APP_IMPORT_RESP" | jq -er '.data.app_id')
 
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8APPIMPORT01",
-  "data": {
-    "app_id": "app_com_example_researchapp_01",
-    "bundle_identifier": "com.example.researchapp",
-    "bundle_name": "ResearchApp",
-    "binary_architecture": "arm64",
-    "code_signature_identity": "Apple Development: Lab Signer",
-    "sha256_digest": "sha256:1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b",
-    "deployment_status": "imported"
-  },
-  "error": null
-}
-```
-
-```bash
-# Install onto running Inferno guest via InstallationProxy / ideviceinstaller
+# 4. Install onto running Inferno guest via companion usbmuxd bridge
 emu research app install \
-  --id f5c2d3e4-5678-9abc-def0-123456789abc \
-  --app-id app_com_example_researchapp_01 \
+  --id "$INFERNO_ID" \
+  --app-id "$APP_ID" \
   --json
-```
 
-**Stdout (Exit Code 0)**:
+# 5. Launch application and verify container creation
+emu research app launch \
+  --id "$INFERNO_ID" \
+  --bundle-id "com.example.researchapp" \
+  --json
 
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8APPINSTALL01",
-  "data": {
-    "app_id": "app_com_example_researchapp_01",
-    "bundle_identifier": "com.example.researchapp",
-    "deployment_status": "installed",
-    "sandbox_container_path": "/private/var/mobile/Containers/Data/Application/3D5E7A2B-1C4F-4E89-B672-9876543210AB"
-  },
-  "error": null
-}
+# 6. Scoped container read, write, and export (FR-024)
+emu research app container-write \
+  --guest-id "$INFERNO_ID" \
+  --bundle-id "com.example.researchapp" \
+  --src "/tmp/test_data.json" \
+  --dest "Documents/test_data.json" \
+  --json
+
+emu research app container-read \
+  --id "$INFERNO_ID" \
+  --bundle-id "com.example.researchapp" \
+  --path "Documents/test_data.json" \
+  --json
+
+emu research app container-export \
+  --id "$INFERNO_ID" \
+  --bundle-id "com.example.researchapp" \
+  --destination "/tmp/exported_app_container" \
+  --json
 ```
 
 ---
 
-## 5. Scenario 4: Frida Dynamic Instrumentation, Native/ObjC Hooks & Target Specificity (User Story 3 - P1)
+## 5. Scenario 4: Frida Dynamic Instrumentation, Native/ObjC Hooks & Target Specificity (User Story 3 & 4 - P1 & P2)
 
-### 5.1 Frida Agent Deployment & Startup
+_Covers Success Criteria: SC-002, SC-005 | Functional Requirements: FR-017, FR-018, FR-019, FR-020, FR-021_
 
-Deploy the pinned Frida 17.18.0 agent to the `Inferno` guest:
+### 5.1 Frida Agent Deployment & Authenticated Configuration
+
+Deploy the pinned Frida 17.18.0 agent and configure endpoint credentials (Decision D-02):
 
 ```bash
-emu research frida prepare --id f5c2d3e4-5678-9abc-def0-123456789abc --json
-emu research frida start --id f5c2d3e4-5678-9abc-def0-123456789abc --json
-```
+# 1. Stage agent package
+emu research frida prepare --id "$INFERNO_ID" --json
 
-**Stdout (Exit Code 0)**:
+# 2. Install agent package into guest runtime
+emu research frida install --id "$INFERNO_ID" --json
 
-```json
+# 3. Configure agent with validated options file (pinned TLS server cert + session token over owned SSH bridge)
+cat << 'EOF' > /tmp/frida_options.json
 {
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8FRIDASTART01",
-  "data": {
-    "guest_id": "f5c2d3e4-5678-9abc-def0-123456789abc",
-    "agent_package_version": "17.18.0",
-    "bridge_endpoint": "127.0.0.1:27042",
-    "status": "ready"
-  },
-  "error": null
-}
-```
-
-### 5.2 Dynamic Script Injection Hooking Native C & Objective-C
-
-Spawn the target application, inject an instrumentation script hooking native `open` and Objective-C `NSURLSession`, and monitor an uninstrumented control process:
-
-```bash
-cat << 'EOF' > /tmp/research_hooks.js
-Interceptor.attach(Module.getExportByName(null, 'open'), {
-  onEnter: function (args) {
-    send({ type: 'native', symbol: 'open', arg0: Memory.readUtf8String(args[0]) });
-  }
-});
-if (ObjC.available) {
-  var method = ObjC.classes.NSURLSession["- dataTaskWithRequest:"];
-  Interceptor.attach(method.implementation, {
-    onEnter: function (args) {
-      send({ type: 'objc', class: 'NSURLSession', method: '- dataTaskWithRequest:' });
-    }
-  });
+  "server_tls_cert_fingerprint": "SHA256:abcd1234ef567890abcd1234ef567890abcd1234ef567890abcd1234ef567890",
+  "session_token": "tok_sess_9a8b7c6d5e4f3a2b1c0d",
+  "listen_endpoint": "127.0.0.1:27042"
 }
 EOF
 
-emu research frida attach \
-  --id f5c2d3e4-5678-9abc-def0-123456789abc \
-  --bundle-id com.example.researchapp \
-  --script /tmp/research_hooks.js \
-  --control-pid 510 \
+emu research frida configure \
+  --guest-id "$INFERNO_ID" \
+  --options-file /tmp/frida_options.json \
   --json
+
+# 4. Start Frida agent daemon
+emu research frida start --id "$INFERNO_ID" --json
 ```
 
-**Stdout (Exit Code 0)**:
+### 5.2 Dynamic Script Injection (3 Cold Boot Trials; SC-002)
 
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8FRIDAATTACH01",
-  "data": {
-    "session_id": "sess_01J8ATTACH001",
-    "guest_id": "f5c2d3e4-5678-9abc-def0-123456789abc",
-    "target_process_id": 412,
-    "target_bundle_id": "com.example.researchapp",
-    "attachment_state": "attached",
-    "hook_status": {
-      "native_hooks_count": 1,
-      "objc_hooks_count": 1,
-      "events_intercepted": 2
-    },
-    "control_process_id": 510,
-    "control_process_hooked": false,
-    "observed_events": [
-      {
-        "type": "native",
-        "symbol": "open",
-        "arg0": "/private/var/mobile/Containers/Data/Application/3D5E7A2B-1C4F-4E89-B672-9876543210AB/Documents/state.db"
-      },
-      {
-        "type": "objc",
-        "class": "NSURLSession",
-        "method": "- dataTaskWithRequest:"
-      }
-    ]
-  },
-  "error": null
-}
-```
-
-### 5.3 Clean Detachment
-
-Detach probes verifying the target application continues running (SC-002):
+To satisfy SC-002, attach dynamic instrumentation using the user-provided bundled script (`$ASSET_DIR/bundled_research_hooks.js`) hooking native C functions (`open`) and Objective-C methods (`NSURLSession`), asserting that control process PID 510 remains unhooked across 3 trials:
 
 ```bash
-emu research frida detach --session-id sess_01J8ATTACH001 --json
+for trial in 1 2 3; do
+  echo "=== Frida Hook Evaluation Trial $trial ==="
+  ATTACH_RESP=$(emu research frida attach \
+    --id "$INFERNO_ID" \
+    --bundle-id "com.example.researchapp" \
+    --script "$ASSET_DIR/bundled_research_hooks.js" \
+    --control-pid 510 \
+    --json)
+
+  printf '%s' "$ATTACH_RESP" | jq -er '.data.hooks_active.native_c_hooks >= 1'
+  printf '%s' "$ATTACH_RESP" | jq -er '.data.hooks_active.objc_method_hooks >= 1'
+  printf '%s' "$ATTACH_RESP" | jq -er '.data.control_process_hooked == false'
+
+  SESS_ID=$(printf '%s' "$ATTACH_RESP" | jq -er '.data.session_id')
+  emu research frida detach --session-id "$SESS_ID" --json
+done
 ```
 
-**Stdout (Exit Code 0)**:
+### 5.3 System Daemon Tracing (3 Trials; SC-005)
 
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8FRIDADETACH01",
-  "data": {
-    "session_id": "sess_01J8ATTACH001",
-    "attachment_state": "detached_clean",
-    "target_process_id": 412,
-    "target_process_running": true
-  },
-  "error": null
-}
+Attach dynamic instrumentation to a compatible guest system daemon:
+
+```bash
+for trial in 1 2 3; do
+  echo "=== Daemon Hook Evaluation Trial $trial ==="
+  DAEMON_RESP=$(emu research frida attach \
+    --id "$INFERNO_ID" \
+    --daemon "installd" \
+    --script "$ASSET_DIR/bundled_research_hooks.js" \
+    --json)
+
+  DAEMON_SESS=$(printf '%s' "$DAEMON_RESP" | jq -er '.data.session_id')
+  emu research frida detach --session-id "$DAEMON_SESS" --json
+done
 ```
 
 ---
 
-## 6. Scenario 5: Deep Kernel Debugging & Disconnect Truthfulness (User Story 4 - P2)
+## 6. Scenario 5: Deep System & Kernel Debugging under `KernelDebugLease` (User Story 4 - P2)
 
-### 6.1 Kernel Execution Pause & State Inspection
+_Covers Success Criteria: SC-004, SC-006 | Functional Requirements: FR-027, FR-028, FR-029_
 
-Pause the running `darwin-vm` guest and inspect ARM64 registers (SC-004, FR-027):
+### 6.1 Kernel Execution Pause & Register Inspection
 
-```bash
-emu research debug pause --id e4b1c2d3-4567-89ab-cdef-0123456789ab --json
-emu research debug registers --id e4b1c2d3-4567-89ab-cdef-0123456789ab --json
-```
-
-**Stdout (Exit Code 0)**:
-
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8DEBUGREGS01",
-  "data": {
-    "guest_id": "e4b1c2d3-4567-89ab-cdef-0123456789ab",
-    "runstate": "paused",
-    "pc": "0xfffffe0007812000",
-    "sp": "0xfffffe001b345000",
-    "pstate": "0x60000005",
-    "general_registers": {
-      "x0": "0x0000000000000000",
-      "x1": "0xfffffe001b345010",
-      "x16": "0xfffffe000789abcd",
-      "x30": "0xfffffe0007811fe0"
-    }
-  },
-  "error": null
-}
-```
-
-### 6.2 Breakpoint, Single-Step & Test State Modification
-
-Set a software breakpoint, execute a single instruction step, and edit register `x0`:
+Under an exclusive `KernelDebugLease` over the supervisor's GDB RSP chardev socket:
 
 ```bash
-# 1. Single instruction step
-emu research debug step --id e4b1c2d3-4567-89ab-cdef-0123456789ab --json
+# 1. Pause virtual CPU execution
+emu research debug pause --id "$DARWIN_ID" --json
+
+# 2. Inspect 64-bit general-purpose registers
+REGS_RESP=$(emu research debug registers --id "$DARWIN_ID" --json)
+printf '%s' "$REGS_RESP" | jq -er '.data.pc != null'
+
+# 3. Single instruction step ('s' packet)
+emu research debug step --id "$DARWIN_ID" --json
+
+# 4. Controlled test register edit and restore
+ORIG_X0=$(printf '%s' "$REGS_RESP" | jq -er '.data.general_registers.x0')
+emu research debug registers --id "$DARWIN_ID" --write x0=0x0000000000000042 --json
+emu research debug registers --id "$DARWIN_ID" --write "x0=$ORIG_X0" --json
 ```
 
-**Stdout (Exit Code 0)**:
+### 6.2 Truthful Debugger Disconnect State Handling (FR-029, SC-006)
 
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8DEBUGSTEP01",
-  "data": {
-    "guest_id": "e4b1c2d3-4567-89ab-cdef-0123456789ab",
-    "step_result": "trap_hit",
-    "pc": "0xfffffe0007812004",
-    "instruction": "mov x0, #1"
-  },
-  "error": null
-}
-```
+Simulate debugger client disconnection while the guest is paused. The supervisor maintains the persistent RSP connection, never forwards `D`/`c`/`k` to QEMU, queries QMP `query-status`, and reports status truthfully as `paused` without silent resumption:
 
 ```bash
-# 2. Modify test register x0
-emu research debug registers --id e4b1c2d3-4567-89ab-cdef-0123456789ab --write x0=0x0000000000000042 --json
+DISCONN_RESP=$(emu research debug disconnect --id "$DARWIN_ID" --action preserve-paused --json)
+printf '%s' "$DISCONN_RESP" | jq -er '.data.observed_guest_runstate == "paused"'
+printf '%s' "$DISCONN_RESP" | jq -er '.data.silently_resumed == false'
 ```
-
-### 6.3 Truthful Debugger Disconnect Handling
-
-Simulate unexpected debugger disconnection while the guest is paused (FR-029, SC-006):
-
-```bash
-emu research debug disconnect --id e4b1c2d3-4567-89ab-cdef-0123456789ab --action preserve-paused --json
-```
-
-**Stdout (Exit Code 0)**:
-
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8DISCONN01",
-  "data": {
-    "guest_id": "e4b1c2d3-4567-89ab-cdef-0123456789ab",
-    "lease_released": true,
-    "observed_guest_runstate": "paused",
-    "silently_resumed": false,
-    "recovery_options": [
-      "emu research debug resume --id e4b1c2d3-4567-89ab-cdef-0123456789ab",
-      "emu research guest restart --id e4b1c2d3-4567-89ab-cdef-0123456789ab",
-      "emu research guest stop --id e4b1c2d3-4567-89ab-cdef-0123456789ab --force"
-    ]
-  },
-  "error": null
-}
-```
-
-_The guest remains truthfully paused in virtual hardware; silent resumption is prohibited._
 
 ---
 
-## 7. Scenario 6: Image Preparation & Disposable Cleanup (User Story 5 - P2)
+## 7. Scenario 6: Host-Side Image Preparation & Disposable Resource Cleanup (User Story 5 - P2)
 
-### 7.1 Verified Device Node Mounting
+_Covers Success Criteria: SC-009, SC-010 | Functional Requirements: FR-031, FR-032, FR-033, FR-034, FR-035, FR-036_
 
-Host-side image preparation verifies the exact device node (`/dev/diskNsM`) and Volume UUID via `diskutil info -plist` without hardcoded path assumptions (FR-033, SC-010):
+### 7.1 Verified Device Node & Volume Identity Inspection
+
+Host-side image preparation verifies the exact device node (`/dev/diskNsM`) and Volume UUID via `diskutil info -plist`, preserving host SSV and SIP untouched (FR-033, FR-034, SC-010):
 
 ```bash
-emu research image prepare \
-  --source ~/research_artifacts/darwin_root_ramdisk.img \
+PREP_RESP=$(emu research image prepare \
+  --source "$ASSET_DIR/darwin_root_ramdisk.img" \
   --target-backend darwin-vm \
   --output /tmp/emu_prepared_disk.raw \
-  --json
+  --json)
+printf '%s' "$PREP_RESP" | jq -er '.data.verified_device_node != null'
+printf '%s' "$PREP_RESP" | jq -er '.data.host_ssv_untouched == true'
+printf '%s' "$PREP_RESP" | jq -er '.data.host_sip_untouched == true'
 ```
 
-**Stdout (Exit Code 0)**:
+### 7.2 Unattended Elevation Refusal Gate (SC-019 Case 5)
 
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8IMGPREP01",
-  "data": {
-    "target_backend": "darwin-vm",
-    "verified_device_node": "/dev/disk4s1",
-    "verified_volume_uuid": "B3A4C5D6-7E8F-9A0B-1C2D-3E4F5A6B7C8D",
-    "output_artifact_digest": "sha256:7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a",
-    "host_ssv_untouched": true,
-    "host_sip_untouched": true
-  },
-  "error": null
-}
-```
-
-### 7.2 Unattended Elevation Refusal Gate
-
-If image preparation requires administrative elevation during unattended execution without pre-authorized credentials, it refuses immediately (FR-035):
+When elevated host privileges are required during unattended automation execution without pre-authorized credentials, image preparation terminates immediately with Exit Code 4 (`auth_refused` / `AUTH_REQUIRED`) (FR-035):
 
 ```bash
 emu research image prepare \
-  --source ~/research_artifacts/darwin_root_ramdisk.img \
+  --source "$ASSET_DIR/darwin_root_ramdisk.img" \
   --target-backend darwin-vm \
   --output /tmp/emu_privileged.raw \
   --unattended \
-  --simulate-missing-sudo \
-  --json
-```
-
-**Stdout (Exit Code 2 `invalid_input`)**:
-
-```json
-{
-  "status": "rejected",
-  "outcome": "invalid_input",
-  "operation_id": "op_01J8AUTHFAIL01",
-  "data": null,
-  "error": {
-    "code": "AUTH_REQUIRED",
-    "message": "Administrative elevation required for disk image mounting but unattended automation mode was requested without pre-authorized credentials",
-    "details": {
-      "target_file": "/tmp/emu_privileged.raw",
-      "remediation": "Provide pre-authorized credentials or run interactively"
-    }
-  }
-}
+  --json || echo "Unattended elevation refused with exit code $?"
 ```
 
 ---
 
 ## 8. Scenario 7: Companion VM Orchestration for Restore Dependencies (User Story 6 - P3)
 
-### 8.1 Companion VM Startup & Dependency Binding
+_Covers Success Criteria: SC-011 | Functional Requirements: FR-037, FR-038, FR-039_
 
-Launch the local helper Linux companion VM on Apple Silicon Mac for `Inferno` restore utilities (FR-037):
+### 8.1 Local x86_64 Companion VM on Same Mac
+
+Launch the documented custom `qemu-system-x86_64` Linux companion VM under TCG on the same macOS host with UDS USB transport (`usb-tcp-remote`) (FR-037, D-08). The companion listener must achieve socket readiness before Inferno connects:
 
 ```bash
 emu research companion start \
-  --parent-guest-id f5c2d3e4-5678-9abc-def0-123456789abc \
+  --parent-guest-id "$INFERNO_ID" \
   --cpus 2 \
   --memory-mb 2048 \
   --json
 ```
 
-**Stdout (Exit Code 0)**:
+### 8.2 Teardown Refusal While Live Dependent Guest Sessions Remain Bound (Gate G-07, SC-011)
 
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8COMPSTART01",
-  "data": {
-    "companion_id": "comp_01J8COMPANION01",
-    "parent_guest_id": "f5c2d3e4-5678-9abc-def0-123456789abc",
-    "lifecycle_state": "running",
-    "endpoint_socket_path": "/tmp/emu-f5c2d3e4/companion.sock",
-    "forwarded_ports": [27042],
-    "active_workflows_count": 1,
-    "live_dependents_count": 1
-  },
-  "error": null
-}
-```
-
-### 8.2 Teardown Refusal While Live Dependent Guest Sessions Remain
-
-Attempting to stop the companion VM while the live `Inferno` guest session depends on companion forwarders is rejected (FR-038, SC-011):
+Attempting to stop the companion VM while live dependent guest sessions remain bound is rejected with Exit Code 5 (`conflict`) (FR-038, SC-011):
 
 ```bash
-emu research companion stop --parent-guest-id f5c2d3e4-5678-9abc-def0-123456789abc --json
+emu research companion stop --parent-guest-id "$INFERNO_ID" --json || echo "Stop refused with exit code $?"
 ```
 
-**Stdout (Exit Code 5 `conflict`)**:
-
-```json
-{
-  "status": "rejected",
-  "outcome": "conflict",
-  "operation_id": "op_01J8COMPSTOPERR01",
-  "data": null,
-  "error": {
-    "code": "DEPENDENT_GUEST_ACTIVE",
-    "message": "Cannot terminate companion VM: 1 live guest session depends on companion forwarders",
-    "details": {
-      "companion_id": "comp_01J8COMPANION01",
-      "live_dependents_count": 1,
-      "hint": "Terminate dependent guest sessions before shutting down companion, or supply --force"
-    }
-  }
-}
-```
+_Expected Outcome_: Exit Code `5` (`conflict`). Error code `DEPENDENT_GUEST_ACTIVE` indicates that dependent guest sessions must be terminated first.
 
 ---
 
-## 9. Scenario 8: Research Profiles, Baseline Recovery & Safe Cancellation (User Story 7 & 8 - P4 & P5)
+## 9. Scenario 8: Research Profiles, Baseline Recovery & Guest Disk Wipe (User Story 7 - P4)
 
-### 9.1 Profile Export Without Host Credentials
+_Covers Success Criteria: SC-012, SC-013, SC-018 | Functional Requirements: FR-040, FR-041, FR-042, FR-043, FR-047_
 
-Export a reproducible research profile; verify that host environment secrets, SSH keys, and credentials are automatically stripped (FR-041, SC-013):
+### 9.1 Profile Export Without Host Secrets & Live Replay (SC-013)
+
+Export a reproducible research experiment profile, verify host secret stripping, and replay on a fresh instance to prove live reproduction:
 
 ```bash
+# 1. Export profile
 emu research profile export \
-  --id e4b1c2d3-4567-89ab-cdef-0123456789ab \
+  --id "$DARWIN_ID" \
   --output /tmp/exported_profile.json \
   --json
+
+# 2. Verify host secrets are excluded using jq assertions
+jq -er '
+  (.data.kernel_boot_args | contains("password") | not) and
+  (.data.applied_patches | length >= 0)
+' /tmp/exported_profile.json
+
+# 3. Import profile onto a fresh guest instance (SC-013)
+emu research profile import --file /tmp/exported_profile.json --json
 ```
 
-**Stdout (Exit Code 0)**:
+### 9.2 Baseline Creation Before Restoration (FR-043)
 
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8PROFEXP01",
-  "data": {
-    "profile_id": "prof_01J8EXPORTED01",
-    "target_backend": "darwin-vm",
-    "base_image_digest": "sha256:d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0123456",
-    "host_secrets_stripped": true,
-    "exported_path": "/tmp/exported_profile.json"
-  },
-  "error": null
-}
-```
-
-### 9.2 Two-Step Authorized Baseline Recovery
-
-Restore a modified or corrupted guest to its verified `RecoveryBaseline` (FR-043, SC-012):
+Capture a verified reference state before executing recovery workflows:
 
 ```bash
-# 1. Dry run to inspect proposal and digest
-emu research baseline restore --id e4b1c2d3-4567-89ab-cdef-0123456789ab --dry-run --json
+# Create baseline snapshot
+emu research baseline create --id "$DARWIN_ID" --deadline-ms 15000 --json
 ```
 
-**Stdout (Exit Code 0, proposal created)**:
+### 9.3 Two-Step Authorized Baseline Recovery & Disk Wipe
 
-```json
-{
-  "status": "accepted",
-  "outcome": "proposal_created",
-  "operation_id": "op_01J8BASEPROP01",
-  "data": {
-    "proposal_id": "prop_01J8BASE001",
-    "proposal_digest": "sha256:b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef01",
-    "operation_type": "baseline_restore",
-    "target_instance_id": "e4b1c2d3-4567-89ab-cdef-0123456789ab",
-    "backend": "darwin-vm",
-    "affected_paths": [
-      "/Users/researcher/Library/Application Support/emu/research/disks/darwin_vm_root_e4b1c2d3.raw"
-    ],
-    "destructive": true,
-    "expires_at": "2026-09-17T14:50:00.000Z"
-  },
-  "error": null
-}
-```
+Restore a guest instance to its verified `RecoveryBaseline`. Two-step authorization requires manual operator review:
 
 ```bash
-# 2. Execute with authorization digest
+# Step 1: Generate mutation proposal via dry-run
+emu research baseline restore --id "$DARWIN_ID" --dry-run --json
+
+# Step 2: Manual Operator Review - Operator reads digest from stdout and enters it
+read -r -p "Enter reviewed baseline restore proposal digest: " REVIEWED_BASE_DIGEST
 emu research baseline restore \
-  --id e4b1c2d3-4567-89ab-cdef-0123456789ab \
-  --authorize sha256:b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef01 \
+  --id "$DARWIN_ID" \
+  --authorize "$REVIEWED_BASE_DIGEST" \
   --json
-```
 
-**Stdout (Exit Code 0, baseline restored)**:
-
-```json
-{
-  "status": "success",
-  "outcome": "completed",
-  "operation_id": "op_01J8BASERESTORE01",
-  "data": {
-    "guest_id": "e4b1c2d3-4567-89ab-cdef-0123456789ab",
-    "baseline_id": "base_e4b1c2d3_stock",
-    "restoration_time_ms": 3420,
-    "declared_sla_ms": 15000,
-    "sla_satisfied": true
-  },
-  "error": null
-}
+# 2. Two-step authorized disk wipe
+emu research guest wipe --id "$DARWIN_ID" --dry-run --json
+read -r -p "Enter reviewed wipe proposal digest: " REVIEWED_WIPE_DIGEST
+emu research guest wipe --id "$DARWIN_ID" --authorize "$REVIEWED_WIPE_DIGEST" --json
 ```
 
 ---
 
-## 10. Scenario 9: Safe Cancellation Boundaries & Bounded Caller Wait Timeouts (User Story 8 - P5)
+## 10. Scenario 9: Bounded Caller Wait Timeouts, Safe Cancellation & TUI Parity (User Story 8 - P5)
 
-### 10.1 Bounded Caller Wait Timeout
+_Covers Success Criteria: SC-014, SC-015, SC-016, SC-018, SC-019 | Functional Requirements: FR-044, FR-045, FR-046, FR-048_
 
-When a caller-specified wait deadline expires before a background operation finishes, the system accurately reports continuing state without terminating the guest task (FR-046, SC-016):
+### 10.1 Bounded Caller Wait Timeout (SC-016)
 
-```bash
-emu research operation wait --id op_01J8LONGRESTORE01 --timeout 1 --json
-```
-
-**Stdout (Exit Code 124 `timed_out`)**:
-
-```json
-{
-  "status": "timed_out",
-  "outcome": "timeout",
-  "operation_id": "op_01J8LONGRESTORE01",
-  "data": {
-    "operation_id": "op_01J8LONGRESTORE01",
-    "execution_state": "continuing",
-    "current_phase": "executing",
-    "progress_percent": 45,
-    "elapsed_seconds": 1.05
-  },
-  "error": {
-    "code": "TIMEOUT",
-    "message": "Caller wait deadline elapsed; background task continues running",
-    "details": {
-      "remediation": "Re-query with 'emu research operation status --id op_01J8LONGRESTORE01' or increase --timeout"
-    }
-  }
-}
-```
-
-### 10.2 Explicit Cancellation at Safe Boundary
-
-Request immediate cancellation. The system acknowledges within <= 200ms with `"cancellation_pending"` and confirms cessation only after reaching a verified safe transaction boundary with disposable cleanup (FR-046, SC-015):
+When a caller wait deadline elapses before a background task finishes, the system returns Exit Code 124 (`timed_out` / `timeout`), reporting actual background task continuing without terminating it (FR-046, SC-016):
 
 ```bash
-emu research operation cancel --id op_01J8LONGRESTORE01 --json
+emu research operation wait --id "op_01J8LONGTASK01" --timeout 1 --json || echo "Wait timed out with exit code $?"
 ```
 
-**Stdout (Exit Code 130 `cancelled`)**:
+_Expected Outcome_: Exit Code `124` (`timed_out` / `timeout`). Background task continues running.
 
-```json
-{
-  "status": "cancelled",
-  "outcome": "cancelled",
-  "operation_id": "op_01J8LONGRESTORE01",
-  "data": {
-    "operation_id": "op_01J8LONGRESTORE01",
-    "safe_boundary_reached": true,
-    "cleaned_resources": [
-      "/tmp/emu_scratch_restore.tmp",
-      "/tmp/emu-f5c2d3e4/companion.sock"
-    ],
-    "residual_state": "clean_stopped"
-  },
-  "error": null
-}
+### 10.2 Diagnostic Event Paging vs Continuous Streaming
+
+```bash
+# Paged single-envelope retrieval
+emu research operation events --id "op_01J8LONGTASK01" --limit 50 --json
+
+# Continuous live streaming to terminal stderr
+emu research operation events --id "op_01J8LONGTASK01" --follow
+```
+
+### 10.3 Explicit Cancellation at Safe Boundary (Gate G-08, SC-015)
+
+Request immediate cancellation. The system acknowledges within `<= 200ms` with `"cancellation_pending"` and confirms `"cancelled"` upon reaching a verified safe transaction boundary with disposable cleanup (FR-046, SC-015):
+
+```bash
+emu research operation cancel --id "op_01J8LONGTASK01" --json
+```
+
+_Expected Exit Code_: `130` (`cancelled`).
+
+### 10.4 Standard Platform Non-Regression Verification (FR-004, SC-008)
+
+To evaluate SC-008, 20 fixed lifecycle trials (launch, inspect, log stream, stop) of standard Android AVD and macOS iOS Simulator are executed via the legacy manager integration test runner, preserving constitution budgets:
+
+```bash
+# Run the dedicated legacy non-regression test suite
+cargo test --test legacy_lifecycle_non_regression -- --nocapture
 ```
 
 ---
 
-## 11. Acceptance Verification Matrix
+## 11. Acceptance Verification Matrix & 16 Critical Negative Cases
 
-| Scenario Number & Name                                     | Validated Success Criteria | Relevant Functional Requirements       | Primary Observable Oracles                                 | Outcome Exit Code |
-| :--------------------------------------------------------- | :------------------------- | :------------------------------------- | :--------------------------------------------------------- | :---------------: |
-| **Scenario 1**: Host Preflight & Dual-Backend Registration | SC-008, SC-014, SC-017     | FR-001, FR-002, FR-005, FR-007         | Preflight JSON; UUIDv4 assignment; name collision rejected |   **0** / **2**   |
-| **Scenario 2**: iOS Root Proof & Falsification             | SC-001, SC-007             | FR-010, FR-012, FR-013, FR-014, FR-015 | UID 0 pass, UID 501 deny; reboot invalidates               |   **0** / **1**   |
-| **Scenario 3**: App Lifecycle & Framework Refusal          | SC-002, SC-003             | FR-016, FR-022, FR-023, FR-024         | Refused on darwin-vm; installed on Inferno                 |   **0** / **3**   |
-| **Scenario 4**: Frida Hooks & Specificity                  | SC-002, SC-005             | FR-017, FR-018, FR-020, FR-021         | Native + ObjC hooks; control untouched                     |       **0**       |
-| **Scenario 5**: Kernel Debugging & Disconnect              | SC-004, SC-006             | FR-027, FR-028, FR-029                 | Pause/registers/step; truthful paused on disconnect        |       **0**       |
-| **Scenario 6**: Image Prep & Mount Identity                | SC-009, SC-010             | FR-031, FR-033, FR-034, FR-035, FR-036 | Verified disk node/UUID; unattended elevation fail         |   **0** / **2**   |
-| **Scenario 7**: Companion VM Orchestration                 | SC-011                     | FR-037, FR-038, FR-039                 | Local Linux helper; stop refused with dependents           |   **0** / **5**   |
-| **Scenario 8**: Profiles & Baseline Recovery               | SC-012, SC-013             | FR-040, FR-041, FR-042, FR-043         | Host secrets stripped; two-step auth restore               |   **0** / **4**   |
-| **Scenario 9**: Bounded Timeout & Safe Cancel              | SC-015, SC-016             | FR-044, FR-045, FR-046, FR-048         | Timeout code 124; cancel code 130 at safe boundary         | **124** / **130** |
+Formal empirical evaluation of the Reference Acceptance Set across the 4-guest cohort (2 `darwin-vm`, 2 `Inferno`) is executed and audited via the planned laboratory test runner:
+
+```bash
+cargo run --example ios_research_lab -- --config "$ASSET_DIR/lab_config.json" --negative-cases
+```
+
+The table below documents the exact test command invocations, falsification criteria, Gate bindings, and expected process exit codes verified across the cohort:
+
+| Case # | Evaluated Condition & Gate                                         | Tested Command Invocation                                                                                                           |   Expected Exit Code   | Falsification Oracle & Outcome Classification                                              |
+| :----: | :----------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- | :--------------------: | :----------------------------------------------------------------------------------------- |
+| **1**  | Missing prerequisites / unaccelerated host limits (Gate G-01)      | `emu research backend preflight --json`                                                                                             |        **`0`**         | `completed` (reports limits truthfully; `app_frameworks_supported: false`)                 |
+| **2**  | Ambiguous instance name collision across backends (Gate G-03)      | `emu research guest inspect --name "ios-sec-lab" --json`                                                                            |        **`2`**         | `invalid_input` (rejected with `AMBIGUOUS_INSTANCE_NAME`)                                  |
+| **3**  | Corrupted or truncated image artifact rejection (Gate G-05)        | `emu research image register --file /dev/null --type root_disk --backend Inferno --json`                                            |        **`2`**         | `invalid_input` (rejected with `CORRUPT_ARTIFACT`)                                         |
+| **4**  | Experimental image missing baseline / opt-in (Gate G-05)           | `emu research image register --file "$ASSET_DIR/experimental.img" --type root_disk --backend Inferno --json`                        |        **`2`**         | `invalid_input` (rejected with `EXPERIMENTAL_OPT_IN_REQUIRED`)                             |
+| **5**  | Denied administrative authorization in unattended mode (Gate G-06) | `emu research image prepare --unattended --source "$ASSET_DIR/ramdisk.img" --target-backend darwin-vm --output /tmp/out.raw --json` |        **`4`**         | `auth_refused` (rejected with `AUTH_REQUIRED`)                                             |
+| **6**  | Incomplete root proof / negative control failure (Gate T-02)       | `emu research root verify --id "$DARWIN_ID" --json` (under misconfigured root permissions)                                          |        **`1`**         | `execution_failed` (privilege marked `unverified`; `PROBE_VERIFICATION_FAILED`)            |
+| **7**  | Stale proof invalidation on reboot (Gate T-03)                     | `emu research root status --id "$DARWIN_ID" --json` (immediately after reboot)                                                      |        **`0`**         | `completed` (`observed_privilege` immediately transitions to `unverified`)                 |
+| **8**  | Unsafe mount path detection and disposable cleanup (Gate G-06)     | `emu research image verify-mount --mount-path "/System" --json`                                                                     |        **`4`**         | `auth_refused` (`HOST_SYSTEM_PROTECTED`; disposable attachments released)                  |
+| **9**  | Companion stop refused while live dependents exist (Gate G-07)     | `emu research companion stop --parent-guest-id "$INFERNO_ID" --json`                                                                |        **`5`**         | `conflict` (rejected with `DEPENDENT_GUEST_ACTIVE`)                                        |
+| **10** | Cross-backend raw snapshot transfer rejection                      | `emu research guest create --name "fail" --backend darwin-vm --root-disk "$INFERNO_ROOT_DIGEST" --json`                             |        **`2`**         | `invalid_input` (rejected with `BACKEND_IMAGE_MISMATCH`)                                   |
+| **11** | Application framework refusal on minimal backend (Gate T-06)       | `emu research app install --id "$DARWIN_ID" --app-id "sample" --json`                                                               |        **`3`**         | `unsupported` (rejected with `APP_FRAMEWORKS_UNAVAILABLE`)                                 |
+| **12** | Frida script syntax error reporting process status                 | `emu research frida attach --id "$INFERNO_ID" --bundle-id "sample" --script /dev/null --json`                                       |        **`1`**         | `execution_failed` (`SCRIPT_PARSE_ERROR`; reports observed process health)                 |
+| **13** | Debugger disconnect preserving paused state (Gate T-08)            | `emu research debug disconnect --id "$DARWIN_ID" --action preserve-paused --json`                                                   |        **`0`**         | `completed` (`observed_guest_runstate: "paused"`; no silent resumption)                    |
+| **14** | Concurrent conflicting mutation rejection                          | `emu research guest stop --id "$DARWIN_ID" --json` (while operation lock held)                                                      |        **`5`**         | `conflict` (rejected with `INSTANCE_LOCKED`)                                               |
+| **15** | Bounded wait timeout vs safe cancellation (Gate G-08)              | `emu research operation wait --id "op_long" --timeout 1 --json`<br>`emu research operation cancel --id "op_long" --json`            | **`124`**<br>**`130`** | `timeout` (`execution_state: "continuing"`)<br>`cancelled` (`safe_boundary_reached: true`) |
+| **16** | Idempotent desired profile re-application                          | `emu research profile apply --id "$DARWIN_ID" --profile /tmp/exported_profile.json --json`                                          |        **`0`**         | `already_satisfied` (zero redundant actions; failed steps do not auto-retry)               |

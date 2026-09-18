@@ -3,7 +3,7 @@
   "$id": "https://emu.rs/schemas/v1/research-ios.schema.json",
   "title": "EmuIosDarwinResearchSchema",
   "description": "Complete JSON Schema defining operational envelopes, entities, state machines, and event streams for iOS Root VM and Darwin Security Research Backends in Emu.",
-  "type": "object",
+  "$ref": "#/definitions/OutputEnvelope",
   "definitions": {
     "OutputEnvelope": {
       "type": "object",
@@ -33,6 +33,7 @@
             "unsupported",
             "conflict",
             "timeout",
+            "cancellation_pending",
             "cancelled",
             "execution_failed"
           ]
@@ -48,7 +49,74 @@
           "anyOf": [{ "$ref": "#/definitions/ErrorRecord" }, { "type": "null" }]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "status": { "enum": ["success"] },
+            "outcome": {
+              "enum": ["completed", "already_satisfied", "proposal_created"]
+            },
+            "error": { "type": "null" }
+          }
+        },
+        {
+          "properties": {
+            "status": { "enum": ["already_satisfied"] },
+            "outcome": { "enum": ["already_satisfied"] },
+            "error": { "type": "null" }
+          }
+        },
+        {
+          "properties": {
+            "status": { "enum": ["accepted"] },
+            "outcome": { "enum": ["proposal_created"] },
+            "error": { "type": "null" }
+          }
+        },
+        {
+          "properties": {
+            "status": { "enum": ["failed"] },
+            "outcome": { "enum": ["execution_failed"] },
+            "error": { "$ref": "#/definitions/ErrorRecord" }
+          }
+        },
+        {
+          "properties": {
+            "status": { "enum": ["rejected"] },
+            "outcome": {
+              "enum": [
+                "invalid_input",
+                "unsupported",
+                "auth_refused",
+                "conflict"
+              ]
+            },
+            "error": { "$ref": "#/definitions/ErrorRecord" }
+          }
+        },
+        {
+          "properties": {
+            "status": { "enum": ["timed_out"] },
+            "outcome": { "enum": ["timeout"] },
+            "error": { "$ref": "#/definitions/ErrorRecord" }
+          }
+        },
+        {
+          "properties": {
+            "status": { "enum": ["timed_out"] },
+            "outcome": { "enum": ["cancellation_pending"] },
+            "error": { "$ref": "#/definitions/ErrorRecord" }
+          }
+        },
+        {
+          "properties": {
+            "status": { "enum": ["cancelled"] },
+            "outcome": { "enum": ["cancelled"] },
+            "error": { "$ref": "#/definitions/ErrorRecord" }
+          }
+        }
+      ]
     },
     "StreamLogEnvelope": {
       "type": "object",
@@ -85,7 +153,8 @@
             "cleanup",
             "teardown",
             "paused",
-            "executing"
+            "executing",
+            "unknown"
           ]
         },
         "message": {
@@ -124,7 +193,8 @@
             "PROBE_VERIFICATION_FAILED",
             "DEBUG_LEASE_CONFLICT",
             "UNSAFE_MOUNT_DETECTED",
-            "RUNTIME_EXECUTION_ERROR"
+            "RUNTIME_EXECUTION_ERROR",
+            "CANCELLATION_PENDING"
           ]
         },
         "message": {
@@ -150,7 +220,8 @@
         "paused",
         "recovering",
         "stopping",
-        "error"
+        "error",
+        "unknown"
       ]
     },
     "CpuArchitecture": {
@@ -193,6 +264,10 @@
         "devicetree",
         "trustcache",
         "root_disk",
+        "sptm_firmware",
+        "txm_firmware",
+        "sep_firmware",
+        "nvram_template",
         "ipsw_restore_bundle"
       ]
     },
@@ -204,6 +279,23 @@
         "digest_mismatch_corrupt",
         "unverified_untrusted"
       ]
+    },
+    "BootArtifactMap": {
+      "type": "object",
+      "required": ["kernelcache", "devicetree"],
+      "properties": {
+        "kernelcache": { "$ref": "#/definitions/Sha256Digest" },
+        "devicetree": { "$ref": "#/definitions/Sha256Digest" },
+        "trustcache": { "$ref": "#/definitions/Sha256Digest" },
+        "ramdisk": { "$ref": "#/definitions/Sha256Digest" },
+        "root_disk": { "$ref": "#/definitions/Sha256Digest" },
+        "sptm_firmware": { "$ref": "#/definitions/Sha256Digest" },
+        "txm_firmware": { "$ref": "#/definitions/Sha256Digest" },
+        "sep_firmware": { "$ref": "#/definitions/Sha256Digest" },
+        "nvram_template": { "$ref": "#/definitions/Sha256Digest" },
+        "ipsw_restore_bundle": { "$ref": "#/definitions/Sha256Digest" }
+      },
+      "additionalProperties": false
     },
     "AppDeploymentStatus": {
       "type": "string",
@@ -240,14 +332,36 @@
       "type": "string",
       "enum": [
         "disk_wipe",
+        "guest_wipe",
         "instance_delete",
         "baseline_restore",
-        "security_policy_relax"
+        "baseline_delete",
+        "security_policy_relax",
+        "security_apply",
+        "security_revert",
+        "container_write",
+        "container_export",
+        "fs_write",
+        "fs_export",
+        "image_prepare_elevation",
+        "image_overwrite",
+        "image_prepare",
+        "profile_apply"
       ]
     },
     "OperationStatus": {
       "type": "string",
-      "enum": ["completed", "failed", "cancelled", "timed_out"]
+      "enum": [
+        "created",
+        "preflight",
+        "staged",
+        "executing",
+        "verifying",
+        "completed",
+        "failed",
+        "cancellation_pending",
+        "cancelled"
+      ]
     },
     "Sha256Digest": {
       "type": "string",
@@ -265,6 +379,7 @@
         "build_identity",
         "config_revision",
         "base_image_ref",
+        "boot_artifacts",
         "runtime_dir",
         "desired_privilege",
         "observed_privilege",
@@ -306,6 +421,12 @@
         "base_image_ref": {
           "$ref": "#/definitions/Sha256Digest"
         },
+        "boot_artifacts": {
+          "$ref": "#/definitions/BootArtifactMap"
+        },
+        "profile_id": {
+          "type": ["string", "null"]
+        },
         "runtime_dir": {
           "type": "string"
         },
@@ -332,6 +453,12 @@
         },
         "observed_privilege": {
           "$ref": "#/definitions/RootVerificationState"
+        },
+        "run_lock_path": {
+          "type": ["string", "null"]
+        },
+        "device_lock_path": {
+          "type": ["string", "null"]
         },
         "created_at": {
           "type": "string",
@@ -362,6 +489,7 @@
         "companion_vm_required",
         "app_frameworks_supported",
         "supported_debug_interfaces",
+        "capabilities",
         "required_binaries",
         "required_entitlements",
         "remediation_steps"
@@ -405,6 +533,26 @@
           "type": "array",
           "items": { "type": "string", "enum": ["gdb_rsp", "qmp_monitor"] }
         },
+        "capabilities": {
+          "type": "object",
+          "required": [
+            "root_shell",
+            "kernel_debug",
+            "app_frameworks",
+            "dynamic_instrumentation",
+            "companion_bridge"
+          ],
+          "properties": {
+            "root_shell": { "$ref": "#/definitions/SupportStatus" },
+            "kernel_debug": { "$ref": "#/definitions/SupportStatus" },
+            "app_frameworks": { "$ref": "#/definitions/SupportStatus" },
+            "dynamic_instrumentation": {
+              "$ref": "#/definitions/SupportStatus"
+            },
+            "companion_bridge": { "$ref": "#/definitions/SupportStatus" }
+          },
+          "additionalProperties": false
+        },
         "required_binaries": {
           "type": "array",
           "items": {
@@ -414,7 +562,8 @@
               "binary_name": { "type": "string" },
               "found": { "type": "boolean" },
               "resolved_path": { "type": "string" }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "required_entitlements": {
@@ -426,7 +575,8 @@
               "name": { "type": "string" },
               "granted": { "type": "boolean" },
               "details": { "type": "string" }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "remediation_steps": {
@@ -464,7 +614,8 @@
             },
             "build_identity": { "type": "string" },
             "source_url_or_ref": { "type": "string" }
-          }
+          },
+          "additionalProperties": false
         },
         "target_backend": { "$ref": "#/definitions/BackendType" },
         "build_version_identity": { "type": "string" },
@@ -477,13 +628,28 @@
     },
     "ProbeOutcome": {
       "type": "object",
-      "required": ["path", "status", "output"],
+      "required": [
+        "path",
+        "status",
+        "target_user",
+        "executed_euid",
+        "expected_denial",
+        "helper_executed",
+        "output"
+      ],
       "properties": {
         "path": { "type": "string" },
-        "status": { "type": "string", "enum": ["success", "denied", "error"] },
+        "status": {
+          "type": "string",
+          "enum": ["success", "denied", "error", "unverified"]
+        },
         "target_user": { "type": "string" },
-        "uid": { "type": "integer" },
+        "executed_euid": { "type": "integer" },
         "expected_denial": { "type": "boolean" },
+        "helper_executed": { "type": "boolean" },
+        "syscall_errno": { "type": ["integer", "null"] },
+        "syscall_error_name": { "type": ["string", "null"] },
+        "content_verified": { "type": ["boolean", "null"] },
         "output": { "type": "string" }
       },
       "additionalProperties": false
@@ -498,12 +664,6 @@
         "guest_build_identity",
         "image_artifact_digest",
         "config_revision_hash",
-        "verified_uid",
-        "positive_probe_outcome",
-        "negative_control_outcome",
-        "observed_kernel_version",
-        "observed_boot_args",
-        "benign_binary_digest",
         "verification_state",
         "verified_at",
         "diagnostics"
@@ -516,12 +676,27 @@
         "guest_build_identity": { "type": "string" },
         "image_artifact_digest": { "$ref": "#/definitions/Sha256Digest" },
         "config_revision_hash": { "$ref": "#/definitions/Sha256Digest" },
-        "verified_uid": { "type": "integer", "enum": [0] },
-        "positive_probe_outcome": { "$ref": "#/definitions/ProbeOutcome" },
-        "negative_control_outcome": { "$ref": "#/definitions/ProbeOutcome" },
-        "observed_kernel_version": { "type": "string" },
-        "observed_boot_args": { "type": "string" },
-        "benign_binary_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "verified_uid": { "type": ["integer", "null"] },
+        "positive_probe_outcome": {
+          "anyOf": [
+            { "$ref": "#/definitions/ProbeOutcome" },
+            { "type": "null" }
+          ]
+        },
+        "negative_control_outcome": {
+          "anyOf": [
+            { "$ref": "#/definitions/ProbeOutcome" },
+            { "type": "null" }
+          ]
+        },
+        "observed_kernel_version": { "type": ["string", "null"] },
+        "observed_boot_args": { "type": ["string", "null"] },
+        "benign_binary_digest": {
+          "anyOf": [
+            { "$ref": "#/definitions/Sha256Digest" },
+            { "type": "null" }
+          ]
+        },
         "verification_state": { "$ref": "#/definitions/RootVerificationState" },
         "verified_at": { "type": "string", "format": "date-time" },
         "diagnostics": {
@@ -529,7 +704,64 @@
           "items": { "type": "string" }
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": { "verification_state": { "enum": ["verified"] } }
+          },
+          "then": {
+            "required": [
+              "verified_uid",
+              "positive_probe_outcome",
+              "negative_control_outcome",
+              "observed_kernel_version",
+              "observed_boot_args",
+              "benign_binary_digest"
+            ],
+            "properties": {
+              "verified_uid": { "type": "integer", "enum": [0] },
+              "positive_probe_outcome": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "executed_euid",
+                  "content_verified",
+                  "helper_executed"
+                ],
+                "properties": {
+                  "status": { "enum": ["success"] },
+                  "executed_euid": { "enum": [0] },
+                  "content_verified": { "enum": [true] },
+                  "helper_executed": { "enum": [true] }
+                }
+              },
+              "negative_control_outcome": {
+                "type": "object",
+                "required": [
+                  "status",
+                  "executed_euid",
+                  "expected_denial",
+                  "helper_executed",
+                  "syscall_errno",
+                  "syscall_error_name"
+                ],
+                "properties": {
+                  "status": { "enum": ["denied"] },
+                  "executed_euid": { "type": "integer", "minimum": 1 },
+                  "expected_denial": { "enum": [true] },
+                  "helper_executed": { "enum": [true] },
+                  "syscall_errno": { "enum": [1, 13] },
+                  "syscall_error_name": { "enum": ["EPERM", "EACCES"] }
+                }
+              },
+              "observed_kernel_version": { "type": "string", "minLength": 1 },
+              "observed_boot_args": { "type": "string" },
+              "benign_binary_digest": { "$ref": "#/definitions/Sha256Digest" }
+            }
+          }
+        }
+      ]
     },
     "ApplicationArtifact": {
       "type": "object",
@@ -543,7 +775,6 @@
         "code_signature_identity",
         "entitlement_manifest",
         "deployment_status",
-        "target_guest_id",
         "created_at",
         "updated_at"
       ],
@@ -558,7 +789,7 @@
         "sandbox_container_path": { "type": ["string", "null"] },
         "entitlement_manifest": { "type": "object" },
         "deployment_status": { "$ref": "#/definitions/AppDeploymentStatus" },
-        "target_guest_id": { "type": "string", "format": "uuid" },
+        "target_guest_id": { "type": ["string", "null"], "format": "uuid" },
         "created_at": { "type": "string", "format": "date-time" },
         "updated_at": { "type": "string", "format": "date-time" }
       },
@@ -587,6 +818,8 @@
         "target_process_id",
         "agent_package_version",
         "agent_integrity_hash",
+        "tls_server_cert_pinned",
+        "session_token_configured",
         "injected_script_hashes",
         "hook_status",
         "attachment_state",
@@ -602,6 +835,8 @@
         "target_bundle_id": { "type": ["string", "null"] },
         "agent_package_version": { "type": "string", "enum": ["17.18.0"] },
         "agent_integrity_hash": { "$ref": "#/definitions/Sha256Digest" },
+        "tls_server_cert_pinned": { "type": "boolean" },
+        "session_token_configured": { "type": "boolean" },
         "injected_script_hashes": {
           "type": "array",
           "items": { "$ref": "#/definitions/Sha256Digest" }
@@ -631,6 +866,7 @@
         "root_filesystem_mount",
         "kernel_privilege_level",
         "guest_relaxations",
+        "baseline_id",
         "created_at",
         "updated_at"
       ],
@@ -648,6 +884,7 @@
           "type": "array",
           "items": { "type": "string" }
         },
+        "baseline_id": { "type": ["string", "null"] },
         "created_at": { "type": "string", "format": "date-time" },
         "updated_at": { "type": "string", "format": "date-time" }
       },
@@ -664,6 +901,8 @@
         "storage_limit_mb",
         "endpoint_socket_path",
         "forwarded_ports",
+        "active_operation_ids",
+        "live_guest_ids",
         "active_workflows_count",
         "live_dependents_count",
         "created_at",
@@ -681,6 +920,14 @@
           "type": "array",
           "items": { "type": "integer" }
         },
+        "active_operation_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "live_guest_ids": {
+          "type": "array",
+          "items": { "type": "string", "format": "uuid" }
+        },
         "active_workflows_count": { "type": "integer", "minimum": 0 },
         "live_dependents_count": { "type": "integer", "minimum": 0 },
         "created_at": { "type": "string", "format": "date-time" },
@@ -695,6 +942,7 @@
         "name",
         "target_backend",
         "base_image_digest",
+        "boot_artifacts",
         "kernel_boot_args",
         "applied_patches",
         "security_profile",
@@ -709,6 +957,7 @@
         "name": { "type": "string" },
         "target_backend": { "$ref": "#/definitions/BackendType" },
         "base_image_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "boot_artifacts": { "$ref": "#/definitions/BootArtifactMap" },
         "kernel_boot_args": { "type": "string" },
         "applied_patches": {
           "type": "array",
@@ -766,7 +1015,10 @@
           "anyOf": [{ "$ref": "#/definitions/HookStatus" }, { "type": "null" }]
         },
         "kernel_debug_telemetry": {
-          "type": ["object", "null"]
+          "anyOf": [
+            { "$ref": "#/definitions/DebugTelemetryRecord" },
+            { "type": "null" }
+          ]
         },
         "execution_status": { "$ref": "#/definitions/OperationStatus" },
         "started_at": { "type": "string", "format": "date-time" },
@@ -797,6 +1049,7 @@
         "backend": { "$ref": "#/definitions/BackendType" },
         "base_disk_digest": { "$ref": "#/definitions/Sha256Digest" },
         "kernel_config_hash": { "$ref": "#/definitions/Sha256Digest" },
+        "boot_artifacts": { "$ref": "#/definitions/BootArtifactMap" },
         "clean_snapshot_path": { "type": "string" },
         "declared_recovery_deadline_ms": { "type": "integer", "minimum": 1000 },
         "verified": { "type": "boolean" },
@@ -810,8 +1063,8 @@
       "required": [
         "proposal_id",
         "proposal_digest",
+        "config_revision",
         "operation_type",
-        "target_instance_id",
         "backend",
         "affected_paths",
         "destructive",
@@ -821,8 +1074,15 @@
       "properties": {
         "proposal_id": { "type": "string" },
         "proposal_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "config_revision": { "$ref": "#/definitions/Sha256Digest" },
         "operation_type": { "$ref": "#/definitions/MutationType" },
-        "target_instance_id": { "type": "string", "format": "uuid" },
+        "target_instance_id": {
+          "type": ["string", "null"],
+          "format": "uuid"
+        },
+        "target_resource": {
+          "type": ["string", "null"]
+        },
         "backend": { "$ref": "#/definitions/BackendType" },
         "affected_paths": {
           "type": "array",
@@ -857,6 +1117,116 @@
         "heartbeat_at": { "type": "string", "format": "date-time" },
         "qmp_cont_blocked": { "type": "boolean", "enum": [true] },
         "gdb_endpoint_path": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "OperationRecord": {
+      "type": "object",
+      "required": [
+        "operation_id",
+        "operation_type",
+        "status",
+        "phase",
+        "created_at"
+      ],
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "pattern": "^op_[0-9A-Za-z]+$"
+        },
+        "operation_type": {
+          "type": "string"
+        },
+        "target_instance_id": {
+          "type": ["string", "null"],
+          "format": "uuid"
+        },
+        "backend": {
+          "anyOf": [{ "$ref": "#/definitions/BackendType" }, { "type": "null" }]
+        },
+        "status": {
+          "$ref": "#/definitions/OperationStatus"
+        },
+        "phase": {
+          "type": "string"
+        },
+        "progress_percent": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "started_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "committed_artifacts": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "residual_resources": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "consumed_proposal_digest": {
+          "anyOf": [
+            { "$ref": "#/definitions/Sha256Digest" },
+            { "type": "null" }
+          ]
+        },
+        "error": {
+          "anyOf": [{ "$ref": "#/definitions/ErrorRecord" }, { "type": "null" }]
+        }
+      },
+      "additionalProperties": false
+    },
+    "DebugTelemetryRecord": {
+      "type": "object",
+      "required": [
+        "breakpoints_hit_count",
+        "step_operations_count",
+        "memory_reads_count",
+        "memory_writes_count",
+        "register_reads_count",
+        "disconnect_paused_observed"
+      ],
+      "properties": {
+        "breakpoints_hit_count": { "type": "integer", "minimum": 0 },
+        "step_operations_count": { "type": "integer", "minimum": 0 },
+        "memory_reads_count": { "type": "integer", "minimum": 0 },
+        "memory_writes_count": { "type": "integer", "minimum": 0 },
+        "register_reads_count": { "type": "integer", "minimum": 0 },
+        "disconnect_paused_observed": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "GuestProcessRecord": {
+      "type": "object",
+      "required": ["pid", "ppid", "name", "user", "uid", "arch"],
+      "properties": {
+        "pid": { "type": "integer", "minimum": 0 },
+        "ppid": { "type": "integer", "minimum": 0 },
+        "name": { "type": "string" },
+        "user": { "type": "string" },
+        "uid": { "type": "integer", "minimum": 0 },
+        "arch": { "$ref": "#/definitions/CpuArchitecture" }
+      },
+      "additionalProperties": false
+    },
+    "GuestMachServiceRecord": {
+      "type": "object",
+      "required": ["service_name", "active"],
+      "properties": {
+        "service_name": { "type": "string" },
+        "active": { "type": "boolean" },
+        "pid": { "type": ["integer", "null"], "minimum": 0 }
       },
       "additionalProperties": false
     }
