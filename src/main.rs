@@ -70,6 +70,9 @@ struct Cli {
     /// Use this before launching the TUI to validate local setup.
     #[arg(long)]
     check: bool,
+
+    #[command(subcommand)]
+    command: Option<emu::cli::Commands>,
 }
 
 /// Main entry point for the Emu application.
@@ -105,6 +108,11 @@ async fn main() -> Result<()> {
             std::env::set_var(ANDROID_AVD_VERBOSE, ANDROID_LOGGING_DISABLED_VALUE);
             std::env::set_var(ANDROID_VERBOSE, ANDROID_LOGGING_DISABLED_VALUE);
         }
+    }
+
+    if let Some(cmd) = cli.command {
+        let code = emu::cli::run_command(cmd).await?;
+        std::process::exit(code);
     }
 
     if cli.check {

@@ -5,11 +5,15 @@
 //! and debug logging in a consistent manner across the application.
 
 use crate::constants::env_vars::RUST_LOG;
-use anyhow::{Context, Result};
-use std::ffi::OsStr;
-use tokio::process::Command;
-
+use crate::constants::research::process::{DEFAULT_SAFE_PATH, DEFAULT_TERM};
 use crate::constants::timeouts::{INITIAL_RETRY_DELAY, MAX_RETRY_DELAY};
+use crate::utils::command_process::{
+    CommandOutput, CommandSpec, OsProcessBackend, ProcessHandle, StdioPolicy, read_bounded,
+};
+use anyhow::{Context, Result, anyhow};
+use std::ffi::OsStr;
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::process::Command;
 
 /// A utility for executing external commands asynchronously.
 ///
@@ -323,6 +327,282 @@ impl CommandRunner {
             "Command failed after {attempts} attempts",
             attempts = max_retries + 1
         ))
+    }
+
+    /// Executes a typed command specification and captures bounded output.
+    ///
+    /// The environment is cleared and populated only with a safe default PATH, TERM,
+    /// and any explicitly provided variables in `spec.env`.
+    /// Stdout and stderr are captured concurrently up to `spec.max_output_bytes`.
+    /// Execution can be cancelled cooperatively via `spec.cancellation` or bounded by `spec.timeout`.
+    /// Unlike legacy `run()`, non-zero exit codes are not treated as errors but returned
+    /// in `CommandOutput.status` for the caller to evaluate.
+    pub async fn run_typed(&self, spec: &CommandSpec) -> Result<CommandOutput> {
+        let mut cmd = Command::new(&spec.program);
+        cmd.args(&spec.args);
+        if let Some(cwd) = &spec.cwd {
+            cmd.current_dir(cwd);
+        }
+
+        cmd.env_clear();
+        cmd.env("PATH", DEFAULT_SAFE_PATH);
+        cmd.env("TERM", DEFAULT_TERM);
+        for (k, v) in &spec.env {
+            cmd.env(k, v);
+        }
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            if spec.process_group
+                == crate::utils::command_process::ProcessGroupPolicy::NewProcessGroup
+            {
+                cmd.as_std_mut().process_group(0);
+            }
+        }
+
+        match spec.stdin {
+            StdioPolicy::Null => cmd.stdin(std::process::Stdio::null()),
+            StdioPolicy::Inherit => cmd.stdin(std::process::Stdio::inherit()),
+            StdioPolicy::Piped | StdioPolicy::Capture => cmd.stdin(std::process::Stdio::piped()),
+        };
+
+        match spec.stdout {
+            StdioPolicy::Null => cmd.stdout(std::process::Stdio::null()),
+            StdioPolicy::Inherit => cmd.stdout(std::process::Stdio::inherit()),
+            StdioPolicy::Piped | StdioPolicy::Capture => cmd.stdout(std::process::Stdio::piped()),
+        };
+
+        match spec.stderr {
+            StdioPolicy::Null => cmd.stderr(std::process::Stdio::null()),
+            StdioPolicy::Inherit => cmd.stderr(std::process::Stdio::inherit()),
+            StdioPolicy::Piped | StdioPolicy::Capture => cmd.stderr(std::process::Stdio::piped()),
+        };
+        let mut child = cmd.spawn().context(format!(
+            "Failed to spawn command: {}",
+            spec.program.display()
+        ))?;
+
+        let stdout_handle = child.stdout.take();
+        let stderr_handle = child.stderr.take();
+
+        let max_bytes = spec.max_output_bytes;
+        let mut stdout_task = tokio::spawn(read_bounded(stdout_handle, max_bytes));
+        let mut stderr_task = tokio::spawn(read_bounded(stderr_handle, max_bytes));
+        let stdout_abort = stdout_task.abort_handle();
+        let stderr_abort = stderr_task.abort_handle();
+
+        let cancel_fut = async {
+            if let Some(mut rx) = spec.cancellation.clone() {
+                if *rx.borrow() {
+                    return;
+                }
+                while rx.changed().await.is_ok() {
+                    if *rx.borrow() {
+                        return;
+                    }
+                }
+            }
+            std::future::pending::<()>().await;
+        };
+
+        let timeout_fut = async {
+            if let Some(timeout_dur) = spec.timeout {
+                tokio::time::sleep(timeout_dur).await;
+            } else {
+                std::future::pending::<()>().await;
+            }
+        };
+
+        let mut stdout_res: Option<Result<Vec<u8>, anyhow::Error>> = None;
+        let mut stderr_res: Option<Result<Vec<u8>, anyhow::Error>> = None;
+        let mut child_status: Option<std::process::ExitStatus> = None;
+
+        let exec_fut = async {
+            loop {
+                if child_status.is_some() && stdout_res.is_some() && stderr_res.is_some() {
+                    break;
+                }
+
+                tokio::select! {
+                    res = child.wait(), if child_status.is_none() => {
+                        let status = res.context("Failed to wait on child process")?;
+                        child_status = Some(status);
+                        // Child process exited. Bound remaining stream drain to avoid deadlock
+                        // if grandchild background processes inherited stdout/stderr pipes.
+                        if stdout_res.is_none() || stderr_res.is_none() {
+                            let drain_res = tokio::time::timeout(
+                                crate::constants::research::process::INHERITED_STREAM_DRAIN_TIMEOUT,
+                                async {
+                                    if stdout_res.is_none() {
+                                        let out = stdout_task
+                                            .await
+                                            .map_err(|e| anyhow!("Stdout capture task panicked: {e}"))?
+                                            .map_err(|e| anyhow!("Command stdout overflow/error: {e}"))?;
+                                        stdout_res = Some(Ok(out));
+                                    }
+                                    if stderr_res.is_none() {
+                                        let err = stderr_task
+                                            .await
+                                            .map_err(|e| anyhow!("Stderr capture task panicked: {e}"))?
+                                            .map_err(|e| anyhow!("Command stderr overflow/error: {e}"))?;
+                                        stderr_res = Some(Ok(err));
+                                    }
+                                    Ok::<_, anyhow::Error>(())
+                                },
+                            ).await;
+
+                            if drain_res.is_err() {
+                                // Inherited stream drain timed out after child exit
+                                stdout_abort.abort();
+                                stderr_abort.abort();
+                                if stdout_res.is_none() {
+                                    stdout_res = Some(Ok(Vec::new()));
+                                }
+                                if stderr_res.is_none() {
+                                    stderr_res = Some(Ok(Vec::new()));
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    res = &mut stdout_task, if stdout_res.is_none() => {
+                        match res {
+                            Ok(Ok(bytes)) => {
+                                stdout_res = Some(Ok(bytes));
+                            }
+                            Ok(Err(err)) => {
+                                let _ = child.start_kill();
+                                let _ = child.wait().await;
+                                stderr_task.abort();
+                                return Err(anyhow!("Command stdout overflow/error: {err}"));
+                            }
+                            Err(join_err) => {
+                                let _ = child.start_kill();
+                                let _ = child.wait().await;
+                                stderr_task.abort();
+                                return Err(anyhow!("Stdout capture task panicked: {join_err}"));
+                            }
+                        }
+                    }
+                    res = &mut stderr_task, if stderr_res.is_none() => {
+                        match res {
+                            Ok(Ok(bytes)) => {
+                                stderr_res = Some(Ok(bytes));
+                            }
+                            Ok(Err(err)) => {
+                                let _ = child.start_kill();
+                                let _ = child.wait().await;
+                                stdout_task.abort();
+                                return Err(anyhow!("Command stderr overflow/error: {err}"));
+                            }
+                            Err(join_err) => {
+                                let _ = child.start_kill();
+                                let _ = child.wait().await;
+                                stdout_task.abort();
+                                return Err(anyhow!("Stderr capture task panicked: {join_err}"));
+                            }
+                        }
+                    }
+                }
+            }
+
+            let status = child_status.expect("child status must be set");
+            let stdout = stdout_res.unwrap_or_else(|| Ok(Vec::new()))?;
+            let stderr = stderr_res.unwrap_or_else(|| Ok(Vec::new()))?;
+            Ok(CommandOutput {
+                status,
+                stdout,
+                stderr,
+            })
+        };
+
+        tokio::select! {
+            res = exec_fut => res,
+            _ = cancel_fut => {
+                let _ = child.start_kill();
+                let _ = child.wait().await;
+                stdout_abort.abort();
+                stderr_abort.abort();
+                Err(anyhow!("Command execution cancelled"))
+            }
+            _ = timeout_fut => {
+                let _ = child.start_kill();
+                let _ = child.wait().await;
+                stdout_abort.abort();
+                stderr_abort.abort();
+                Err(anyhow!("Command execution timed out after {:?}", spec.timeout.unwrap()))
+            }
+        }
+    }
+
+    /// Spawns a typed command specification and returns an owned `ProcessHandle`.
+    ///
+    /// Streams are configured per `spec.stdin`, `spec.stdout`, and `spec.stderr`.
+    /// The returned `ProcessHandle` owns the child process and provides asynchronous
+    /// wait, timeout wait without termination, and graceful shutdown/reap methods.
+    pub async fn spawn_typed(&self, spec: &CommandSpec) -> Result<ProcessHandle> {
+        let mut cmd = Command::new(&spec.program);
+        cmd.args(&spec.args);
+        if let Some(cwd) = &spec.cwd {
+            cmd.current_dir(cwd);
+        }
+
+        cmd.env_clear();
+        cmd.env("PATH", DEFAULT_SAFE_PATH);
+        cmd.env("TERM", DEFAULT_TERM);
+        for (k, v) in &spec.env {
+            cmd.env(k, v);
+        }
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            if spec.process_group
+                == crate::utils::command_process::ProcessGroupPolicy::NewProcessGroup
+            {
+                cmd.as_std_mut().process_group(0);
+            }
+        }
+
+        match spec.stdin {
+            StdioPolicy::Null => cmd.stdin(std::process::Stdio::null()),
+            StdioPolicy::Inherit => cmd.stdin(std::process::Stdio::inherit()),
+            StdioPolicy::Piped | StdioPolicy::Capture => cmd.stdin(std::process::Stdio::piped()),
+        };
+
+        match spec.stdout {
+            StdioPolicy::Null => cmd.stdout(std::process::Stdio::null()),
+            StdioPolicy::Inherit => cmd.stdout(std::process::Stdio::inherit()),
+            StdioPolicy::Piped | StdioPolicy::Capture => cmd.stdout(std::process::Stdio::piped()),
+        };
+
+        match spec.stderr {
+            StdioPolicy::Null => cmd.stderr(std::process::Stdio::null()),
+            StdioPolicy::Inherit => cmd.stderr(std::process::Stdio::inherit()),
+            StdioPolicy::Piped | StdioPolicy::Capture => cmd.stderr(std::process::Stdio::piped()),
+        };
+
+        let mut child = cmd.spawn().context(format!(
+            "Failed to spawn command: {}",
+            spec.program.display()
+        ))?;
+
+        let pid = child.id().unwrap_or(0);
+        let stdin: Option<Box<dyn AsyncWrite + Send + Unpin>> = child
+            .stdin
+            .take()
+            .map(|s| Box::new(s) as Box<dyn AsyncWrite + Send + Unpin>);
+        let stdout: Option<Box<dyn AsyncRead + Send + Unpin>> = child
+            .stdout
+            .take()
+            .map(|s| Box::new(s) as Box<dyn AsyncRead + Send + Unpin>);
+        let stderr: Option<Box<dyn AsyncRead + Send + Unpin>> = child
+            .stderr
+            .take()
+            .map(|s| Box::new(s) as Box<dyn AsyncRead + Send + Unpin>);
+
+        let backend = Box::new(OsProcessBackend::new(child, pid));
+        Ok(ProcessHandle::new(pid, stdin, stdout, stderr, backend))
     }
 }
 

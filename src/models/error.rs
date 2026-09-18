@@ -249,6 +249,220 @@ pub fn format_user_error(error: &anyhow::Error) -> String {
 /// when returning results that may contain device-specific errors.
 pub type DeviceResult<T> = Result<T, DeviceError>;
 
+/// Canonical research error codes defined in contracts/research.schema.json#/definitions/ErrorRecord.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum ResearchErrorCode {
+    #[serde(rename = "AUTH_REQUIRED")]
+    AuthRequired,
+    #[serde(rename = "INVALID_INPUT")]
+    InvalidInput,
+    #[serde(rename = "UNSUPPORTED_HOST")]
+    UnsupportedHost,
+    #[serde(rename = "APP_FRAMEWORKS_UNAVAILABLE")]
+    AppFrameworksUnavailable,
+    #[serde(rename = "AMBIGUOUS_INSTANCE_NAME")]
+    AmbiguousInstanceName,
+    #[serde(rename = "ARTIFACT_CORRUPTED")]
+    ArtifactCorrupted,
+    #[serde(rename = "EXPERIMENTAL_OPT_IN_REQUIRED")]
+    ExperimentalOptInRequired,
+    #[serde(rename = "MISSING_BASELINE")]
+    MissingBaseline,
+    #[serde(rename = "CONCURRENCY_CONFLICT")]
+    ConcurrencyConflict,
+    #[serde(rename = "DEPENDENT_GUEST_ACTIVE")]
+    DependentGuestActive,
+    #[serde(rename = "TIMEOUT")]
+    Timeout,
+    #[serde(rename = "CANCELLED")]
+    Cancelled,
+    #[serde(rename = "PROBE_VERIFICATION_FAILED")]
+    ProbeVerificationFailed,
+    #[serde(rename = "DEBUG_LEASE_CONFLICT")]
+    DebugLeaseConflict,
+    #[serde(rename = "UNSAFE_MOUNT_DETECTED")]
+    UnsafeMountDetected,
+    #[serde(rename = "RUNTIME_EXECUTION_ERROR")]
+    RuntimeExecutionError,
+    #[serde(rename = "CANCELLATION_PENDING")]
+    CancellationPending,
+}
+
+impl ResearchErrorCode {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::AuthRequired => "AUTH_REQUIRED",
+            Self::InvalidInput => "INVALID_INPUT",
+            Self::UnsupportedHost => "UNSUPPORTED_HOST",
+            Self::AppFrameworksUnavailable => "APP_FRAMEWORKS_UNAVAILABLE",
+            Self::AmbiguousInstanceName => "AMBIGUOUS_INSTANCE_NAME",
+            Self::ArtifactCorrupted => "ARTIFACT_CORRUPTED",
+            Self::ExperimentalOptInRequired => "EXPERIMENTAL_OPT_IN_REQUIRED",
+            Self::MissingBaseline => "MISSING_BASELINE",
+            Self::ConcurrencyConflict => "CONCURRENCY_CONFLICT",
+            Self::DependentGuestActive => "DEPENDENT_GUEST_ACTIVE",
+            Self::Timeout => "TIMEOUT",
+            Self::Cancelled => "CANCELLED",
+            Self::ProbeVerificationFailed => "PROBE_VERIFICATION_FAILED",
+            Self::DebugLeaseConflict => "DEBUG_LEASE_CONFLICT",
+            Self::UnsafeMountDetected => "UNSAFE_MOUNT_DETECTED",
+            Self::RuntimeExecutionError => "RUNTIME_EXECUTION_ERROR",
+            Self::CancellationPending => "CANCELLATION_PENDING",
+        }
+    }
+
+    pub fn from_code(code: &str) -> Option<Self> {
+        match code {
+            "AUTH_REQUIRED" => Some(Self::AuthRequired),
+            "INVALID_INPUT" => Some(Self::InvalidInput),
+            "UNSUPPORTED_HOST" => Some(Self::UnsupportedHost),
+            "APP_FRAMEWORKS_UNAVAILABLE" => Some(Self::AppFrameworksUnavailable),
+            "AMBIGUOUS_INSTANCE_NAME" => Some(Self::AmbiguousInstanceName),
+            "ARTIFACT_CORRUPTED" => Some(Self::ArtifactCorrupted),
+            "EXPERIMENTAL_OPT_IN_REQUIRED" => Some(Self::ExperimentalOptInRequired),
+            "MISSING_BASELINE" => Some(Self::MissingBaseline),
+            "CONCURRENCY_CONFLICT" => Some(Self::ConcurrencyConflict),
+            "DEPENDENT_GUEST_ACTIVE" => Some(Self::DependentGuestActive),
+            "TIMEOUT" => Some(Self::Timeout),
+            "CANCELLED" => Some(Self::Cancelled),
+            "PROBE_VERIFICATION_FAILED" => Some(Self::ProbeVerificationFailed),
+            "DEBUG_LEASE_CONFLICT" => Some(Self::DebugLeaseConflict),
+            "UNSAFE_MOUNT_DETECTED" => Some(Self::UnsafeMountDetected),
+            "RUNTIME_EXECUTION_ERROR" => Some(Self::RuntimeExecutionError),
+            "CANCELLATION_PENDING" => Some(Self::CancellationPending),
+            _ => None,
+        }
+    }
+
+    pub fn exit_code(&self) -> i32 {
+        match self {
+            Self::AuthRequired => crate::constants::research::EXIT_AUTH_REFUSED,
+            Self::InvalidInput
+            | Self::AmbiguousInstanceName
+            | Self::ArtifactCorrupted
+            | Self::ExperimentalOptInRequired
+            | Self::MissingBaseline => crate::constants::research::EXIT_INVALID_INPUT,
+            Self::UnsupportedHost | Self::AppFrameworksUnavailable => {
+                crate::constants::research::EXIT_UNSUPPORTED
+            }
+            Self::ConcurrencyConflict | Self::DependentGuestActive | Self::DebugLeaseConflict => {
+                crate::constants::research::EXIT_CONFLICT
+            }
+            Self::Timeout | Self::CancellationPending => crate::constants::research::EXIT_TIMEOUT,
+            Self::Cancelled => crate::constants::research::EXIT_CANCELLED,
+            Self::ProbeVerificationFailed
+            | Self::UnsafeMountDetected
+            | Self::RuntimeExecutionError => crate::constants::research::EXIT_RUNTIME_FAILURE,
+        }
+    }
+}
+
+/// Domain contract and schema validation error.
+#[derive(Debug, thiserror::Error, Clone, PartialEq, Eq)]
+pub enum ContractViolation {
+    #[error("Unknown error code '{0}': not in research schema enum")]
+    UnknownErrorCode(String),
+    #[error("Error details must be a JSON object, got: {0}")]
+    InvalidErrorDetails(String),
+    #[error("Field '{field}' violation: {reason}")]
+    FieldViolation { field: String, reason: String },
+    #[error("Invalid identifier for '{field}': '{value}' ({reason})")]
+    InvalidIdentifier {
+        field: String,
+        value: String,
+        reason: String,
+    },
+    #[error("Invalid SHA-256 digest: '{0}' (must match '^sha256:[a-f0-9]{{64}}$')")]
+    InvalidDigest(String),
+    #[error("Invalid timestamp for '{field}': '{value}' (must be RFC 3339 format)")]
+    InvalidTimestamp { field: String, value: String },
+    #[error("Envelope validation failed: {0}")]
+    InvalidEnvelope(String),
+    #[error("Root proof validation failed: {0}")]
+    InvalidRootProof(String),
+    #[error("Constraint violation: {0}")]
+    Constraint(String),
+}
+
+/// Structured error record conforming to contracts/research.schema.json#/definitions/ErrorRecord.
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ErrorRecord {
+    pub code: String,
+    pub message: String,
+    pub details: serde_json::Value,
+}
+
+impl ErrorRecord {
+    pub fn try_new(
+        code: impl Into<String>,
+        message: impl Into<String>,
+        details: Option<serde_json::Value>,
+    ) -> Result<Self, ContractViolation> {
+        let code_str = code.into();
+        if ResearchErrorCode::from_code(&code_str).is_none() {
+            return Err(ContractViolation::UnknownErrorCode(code_str));
+        }
+        let details_val =
+            details.unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new()));
+        if !details_val.is_object() {
+            return Err(ContractViolation::InvalidErrorDetails(
+                details_val.to_string(),
+            ));
+        }
+        Ok(Self {
+            code: code_str,
+            message: message.into(),
+            details: details_val,
+        })
+    }
+
+    pub fn new(
+        code: impl Into<String>,
+        message: impl Into<String>,
+        details: Option<serde_json::Value>,
+    ) -> Self {
+        Self {
+            code: code.into(),
+            message: message.into(),
+            details: details.unwrap_or_else(|| serde_json::Value::Object(serde_json::Map::new())),
+        }
+    }
+
+    pub fn from_canonical(
+        code: ResearchErrorCode,
+        message: impl Into<String>,
+        details: Option<serde_json::Value>,
+    ) -> Self {
+        Self::new(code.as_str(), message, details)
+    }
+
+    pub fn validate(&self) -> Result<(), ContractViolation> {
+        if ResearchErrorCode::from_code(&self.code).is_none() {
+            return Err(ContractViolation::UnknownErrorCode(self.code.clone()));
+        }
+        if !self.details.is_object() {
+            return Err(ContractViolation::InvalidErrorDetails(
+                self.details.to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn exit_code(&self) -> i32 {
+        match ResearchErrorCode::from_code(&self.code) {
+            Some(canonical) => canonical.exit_code(),
+            None => crate::constants::research::EXIT_RUNTIME_FAILURE,
+        }
+    }
+}
+
+impl std::fmt::Display for ErrorRecord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}] {}", self.code, self.message)
+    }
+}
+
+impl std::error::Error for ErrorRecord {}
 #[cfg(test)]
 mod tests {
     use super::*;

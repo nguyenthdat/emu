@@ -55,6 +55,7 @@ pub mod patterns;
 pub mod performance;
 pub mod priorities;
 pub mod progress;
+pub mod research;
 pub mod resolutions;
 pub mod timeouts;
 pub mod ui_layout;

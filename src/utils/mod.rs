@@ -13,6 +13,7 @@
 pub mod cache;
 pub mod command;
 pub mod command_executor;
+pub mod command_process;
 pub mod logger;
 pub mod validation;
 
@@ -20,5 +21,6 @@ pub mod validation;
 pub use cache::ApiLevelCache;
 pub use command::CommandRunner;
 pub use command_executor::CommandExecutor;
+pub use command_process::{CommandOutput, CommandSpec, ProcessBackend, ProcessHandle, StdioPolicy};
 pub use logger::setup_logger;
 pub use validation::{DeviceNameValidator, FieldValidator, NumericRangeValidator};

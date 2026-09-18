@@ -10,7 +10,9 @@ use emu::managers::android::AndroidManager;
 use emu::managers::common::DeviceManager;
 #[cfg(feature = "test-utils")]
 use emu::models::{AndroidDevice, DeviceStatus};
-use emu::utils::command_executor::{CommandExecutor, mock::MockCommandExecutor};
+use emu::utils::command_executor::{
+    CommandExecutor, CommandOutput, CommandSpec, ProcessHandle, mock::MockCommandExecutor,
+};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
@@ -852,6 +854,25 @@ impl CommandExecutor for DelayedAdbExecutor {
         _ignore_patterns: &[&str],
     ) -> Result<String> {
         self.run(command, args).await
+    }
+
+    async fn run_typed(&self, spec: &CommandSpec) -> Result<CommandOutput> {
+        let args: Vec<&str> = spec.args_as_str_slice();
+        let stdout_str = self.run(&spec.program, &args).await?;
+        Ok(CommandOutput {
+            status: emu::utils::command_process::exit_status_from_code(0),
+            stdout: stdout_str.into_bytes(),
+            stderr: Vec::new(),
+        })
+    }
+
+    async fn spawn_typed(&self, spec: &CommandSpec) -> Result<ProcessHandle> {
+        let args: Vec<&str> = spec.args_as_str_slice();
+        let pid = self.spawn(&spec.program, &args).await?;
+        let backend = Box::new(emu::utils::command_process::MockProcessBackend::new(
+            emu::utils::command_process::exit_status_from_code(0),
+        ));
+        Ok(ProcessHandle::new(pid, None, None, None, backend))
     }
 }
 

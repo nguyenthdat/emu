@@ -14,6 +14,8 @@ pub mod state;
 
 /// Event processing optimizations for improved key input handling.
 pub mod event_processing;
+/// Interactive research TUI panels, widgets, and dialogs.
+pub mod research;
 
 mod api_levels;
 mod background;

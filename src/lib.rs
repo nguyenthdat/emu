@@ -56,6 +56,9 @@ pub mod constants;
 ///
 /// Contains the trait-based abstraction layer and concrete implementations
 /// for Android (via Android SDK) and iOS (via Xcode simctl) device management.
+/// Command Line Interface automation and routing hierarchy.
+pub mod cli;
+
 pub mod managers;
 
 /// Core data structures and domain models.
@@ -63,6 +66,18 @@ pub mod managers;
 /// Defines the primary types used throughout the application including
 /// device representations, error types, and configuration structures.
 pub mod models;
+
+/// Storage persistence layer for research backends and shared resources.
+///
+/// Contains transactional filesystem paths, atomic write staging,
+/// and cross-process advisory locking engines.
+pub mod persistence;
+/// Protocol clients and stream handlers for virtualization and debugging interfaces.
+pub mod protocols;
+/// Domain services for device orchestration and research capabilities.
+pub mod services;
+/// Native helper worker wrappers and IPC bridges.
+pub mod workers;
 
 /// Terminal user interface components.
 ///

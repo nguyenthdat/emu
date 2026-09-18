@@ -16,6 +16,7 @@ pub mod device;
 pub mod device_info;
 pub mod error;
 pub mod platform;
+pub mod research;
 
 // Re-export commonly used types for convenience
 pub use api_level::{ApiLevel, InstallProgress, SystemImageVariant};

@@ -2,11 +2,16 @@
 target/
 **/*.rs.bk
 *.pdb
+debug/
+release/
+*.rlib
+*.prof*
 
 # IDE
 .idea/
 .vscode/
 *.swp
+*.tmp
 *.swo
 *~
 
@@ -53,7 +58,7 @@ flamegraph.svg
 # Environment files
 .env
 .env.local
-
+.env*
 # Project planning documents
 plans/
 
