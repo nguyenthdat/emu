@@ -1,0 +1,864 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://emu.rs/schemas/v1/research-ios.schema.json",
+  "title": "EmuIosDarwinResearchSchema",
+  "description": "Complete JSON Schema defining operational envelopes, entities, state machines, and event streams for iOS Root VM and Darwin Security Research Backends in Emu.",
+  "type": "object",
+  "definitions": {
+    "OutputEnvelope": {
+      "type": "object",
+      "required": ["status", "outcome", "operation_id", "data", "error"],
+      "properties": {
+        "$schema": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": [
+            "success",
+            "already_satisfied",
+            "accepted",
+            "failed",
+            "rejected",
+            "timed_out",
+            "cancelled"
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "already_satisfied",
+            "proposal_created",
+            "auth_refused",
+            "invalid_input",
+            "unsupported",
+            "conflict",
+            "timeout",
+            "cancelled",
+            "execution_failed"
+          ]
+        },
+        "operation_id": {
+          "type": "string",
+          "pattern": "^op_[0-9A-Za-z]+$"
+        },
+        "data": {
+          "type": ["object", "null"]
+        },
+        "error": {
+          "anyOf": [{ "$ref": "#/definitions/ErrorRecord" }, { "type": "null" }]
+        }
+      },
+      "additionalProperties": false
+    },
+    "StreamLogEnvelope": {
+      "type": "object",
+      "required": [
+        "timestamp",
+        "level",
+        "event",
+        "phase",
+        "message",
+        "operation_id"
+      ],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "level": {
+          "type": "string",
+          "enum": ["DEBUG", "INFO", "WARN", "ERROR"]
+        },
+        "event": {
+          "type": "string"
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "preflight",
+            "staging",
+            "booting",
+            "verifying",
+            "settled",
+            "recovering",
+            "stopping",
+            "cleanup",
+            "teardown",
+            "paused",
+            "executing"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "operation_id": {
+          "type": "string",
+          "pattern": "^op_[0-9A-Za-z]+$"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "ErrorRecord": {
+      "type": "object",
+      "required": ["code", "message", "details"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "AUTH_REQUIRED",
+            "INVALID_INPUT",
+            "UNSUPPORTED_HOST",
+            "APP_FRAMEWORKS_UNAVAILABLE",
+            "AMBIGUOUS_INSTANCE_NAME",
+            "ARTIFACT_CORRUPTED",
+            "EXPERIMENTAL_OPT_IN_REQUIRED",
+            "MISSING_BASELINE",
+            "CONCURRENCY_CONFLICT",
+            "DEPENDENT_GUEST_ACTIVE",
+            "TIMEOUT",
+            "CANCELLED",
+            "PROBE_VERIFICATION_FAILED",
+            "DEBUG_LEASE_CONFLICT",
+            "UNSAFE_MOUNT_DETECTED",
+            "RUNTIME_EXECUTION_ERROR"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "BackendType": {
+      "type": "string",
+      "enum": ["darwin-vm", "Inferno"]
+    },
+    "InstanceLifecycleState": {
+      "type": "string",
+      "enum": [
+        "stopped",
+        "booting",
+        "running",
+        "paused",
+        "recovering",
+        "stopping",
+        "error"
+      ]
+    },
+    "CpuArchitecture": {
+      "type": "string",
+      "enum": ["arm64"]
+    },
+    "PrivilegeState": {
+      "type": "string",
+      "enum": ["root", "unprivileged"]
+    },
+    "RootVerificationState": {
+      "type": "string",
+      "enum": ["unverified", "verifying", "verified", "invalidated"]
+    },
+    "FridaAttachmentState": {
+      "type": "string",
+      "enum": [
+        "detached",
+        "preparing",
+        "ready",
+        "attached",
+        "detached_clean",
+        "failed",
+        "invalidated"
+      ]
+    },
+    "DebugLeaseState": {
+      "type": "string",
+      "enum": ["active", "released", "expired", "disconnected_paused"]
+    },
+    "SupportStatus": {
+      "type": "string",
+      "enum": ["supported", "unsupported", "experimental"]
+    },
+    "ImageArtifactType": {
+      "type": "string",
+      "enum": [
+        "kernelcache",
+        "ramdisk",
+        "devicetree",
+        "trustcache",
+        "root_disk",
+        "ipsw_restore_bundle"
+      ]
+    },
+    "ArtifactTrustStatus": {
+      "type": "string",
+      "enum": [
+        "verified_trusted",
+        "experimental_opt_in",
+        "digest_mismatch_corrupt",
+        "unverified_untrusted"
+      ]
+    },
+    "AppDeploymentStatus": {
+      "type": "string",
+      "enum": [
+        "imported",
+        "installed",
+        "running",
+        "stopped",
+        "removed",
+        "incompatible"
+      ]
+    },
+    "CodeSigningMode": {
+      "type": "string",
+      "enum": ["enforced", "adhoc_permitted", "disabled"]
+    },
+    "AmfiStatus": {
+      "type": "string",
+      "enum": ["enforced", "developer_mode", "amfi_get_out_of_my_way"]
+    },
+    "SandboxMode": {
+      "type": "string",
+      "enum": ["enforced", "audit_only", "relaxed"]
+    },
+    "MountMode": {
+      "type": "string",
+      "enum": ["read_only", "read_write"]
+    },
+    "KernelPrivilegeLevel": {
+      "type": "string",
+      "enum": ["stock", "root_console_enabled", "kernel_debug_enabled"]
+    },
+    "MutationType": {
+      "type": "string",
+      "enum": [
+        "disk_wipe",
+        "instance_delete",
+        "baseline_restore",
+        "security_policy_relax"
+      ]
+    },
+    "OperationStatus": {
+      "type": "string",
+      "enum": ["completed", "failed", "cancelled", "timed_out"]
+    },
+    "Sha256Digest": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "ResearchGuestInstance": {
+      "type": "object",
+      "required": [
+        "id",
+        "display_name",
+        "backend",
+        "lifecycle_state",
+        "guest_arch",
+        "guest_os_version",
+        "build_identity",
+        "config_revision",
+        "base_image_ref",
+        "runtime_dir",
+        "desired_privilege",
+        "observed_privilege",
+        "created_at",
+        "updated_at",
+        "last_settled_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "backend": {
+          "$ref": "#/definitions/BackendType"
+        },
+        "lifecycle_state": {
+          "$ref": "#/definitions/InstanceLifecycleState"
+        },
+        "guest_arch": {
+          "$ref": "#/definitions/CpuArchitecture"
+        },
+        "guest_os_version": {
+          "type": "string"
+        },
+        "build_identity": {
+          "type": "string"
+        },
+        "boot_session_id": {
+          "type": ["string", "null"],
+          "format": "uuid"
+        },
+        "config_revision": {
+          "$ref": "#/definitions/Sha256Digest"
+        },
+        "base_image_ref": {
+          "$ref": "#/definitions/Sha256Digest"
+        },
+        "runtime_dir": {
+          "type": "string"
+        },
+        "qmp_socket_path": {
+          "type": ["string", "null"]
+        },
+        "gdb_socket_path": {
+          "type": ["string", "null"]
+        },
+        "console_socket_path": {
+          "type": ["string", "null"]
+        },
+        "active_session_id": {
+          "type": ["string", "null"]
+        },
+        "security_profile_id": {
+          "type": ["string", "null"]
+        },
+        "baseline_id": {
+          "type": ["string", "null"]
+        },
+        "desired_privilege": {
+          "$ref": "#/definitions/PrivilegeState"
+        },
+        "observed_privilege": {
+          "$ref": "#/definitions/RootVerificationState"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "last_settled_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "BackendCapabilityProfile": {
+      "type": "object",
+      "required": [
+        "backend",
+        "host_os",
+        "host_arch",
+        "hypervisor",
+        "support_status",
+        "supported_guest_families",
+        "headless_console_support",
+        "graphical_display_support",
+        "companion_vm_required",
+        "app_frameworks_supported",
+        "supported_debug_interfaces",
+        "required_binaries",
+        "required_entitlements",
+        "remediation_steps"
+      ],
+      "properties": {
+        "backend": {
+          "$ref": "#/definitions/BackendType"
+        },
+        "host_os": {
+          "type": "string",
+          "enum": ["macos"]
+        },
+        "host_arch": {
+          "type": "string",
+          "enum": ["aarch64"]
+        },
+        "hypervisor": {
+          "type": "string",
+          "enum": ["hypervisor_framework", "tcg_emulation"]
+        },
+        "support_status": {
+          "$ref": "#/definitions/SupportStatus"
+        },
+        "supported_guest_families": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "headless_console_support": {
+          "type": "boolean"
+        },
+        "graphical_display_support": {
+          "type": "boolean"
+        },
+        "companion_vm_required": {
+          "type": "boolean"
+        },
+        "app_frameworks_supported": {
+          "type": "boolean"
+        },
+        "supported_debug_interfaces": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["gdb_rsp", "qmp_monitor"] }
+        },
+        "required_binaries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["binary_name", "found"],
+            "properties": {
+              "binary_name": { "type": "string" },
+              "found": { "type": "boolean" },
+              "resolved_path": { "type": "string" }
+            }
+          }
+        },
+        "required_entitlements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "granted"],
+            "properties": {
+              "name": { "type": "string" },
+              "granted": { "type": "boolean" },
+              "details": { "type": "string" }
+            }
+          }
+        },
+        "remediation_steps": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ResearchImageArtifact": {
+      "type": "object",
+      "required": [
+        "artifact_id",
+        "artifact_type",
+        "file_path",
+        "sha256_digest",
+        "origin_metadata",
+        "target_backend",
+        "build_version_identity",
+        "trust_status",
+        "created_at"
+      ],
+      "properties": {
+        "artifact_id": { "type": "string" },
+        "artifact_type": { "$ref": "#/definitions/ImageArtifactType" },
+        "file_path": { "type": "string" },
+        "sha256_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "origin_metadata": {
+          "type": "object",
+          "required": ["source_type", "build_identity"],
+          "properties": {
+            "source_type": {
+              "type": "string",
+              "enum": ["user_supplied", "prepared_recovery"]
+            },
+            "build_identity": { "type": "string" },
+            "source_url_or_ref": { "type": "string" }
+          }
+        },
+        "target_backend": { "$ref": "#/definitions/BackendType" },
+        "build_version_identity": { "type": "string" },
+        "verified_device_node": { "type": ["string", "null"] },
+        "verified_volume_uuid": { "type": ["string", "null"] },
+        "trust_status": { "$ref": "#/definitions/ArtifactTrustStatus" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "ProbeOutcome": {
+      "type": "object",
+      "required": ["path", "status", "output"],
+      "properties": {
+        "path": { "type": "string" },
+        "status": { "type": "string", "enum": ["success", "denied", "error"] },
+        "target_user": { "type": "string" },
+        "uid": { "type": "integer" },
+        "expected_denial": { "type": "boolean" },
+        "output": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "RootProofEvidence": {
+      "type": "object",
+      "required": [
+        "evidence_id",
+        "guest_id",
+        "boot_session_id",
+        "backend",
+        "guest_build_identity",
+        "image_artifact_digest",
+        "config_revision_hash",
+        "verified_uid",
+        "positive_probe_outcome",
+        "negative_control_outcome",
+        "observed_kernel_version",
+        "observed_boot_args",
+        "benign_binary_digest",
+        "verification_state",
+        "verified_at",
+        "diagnostics"
+      ],
+      "properties": {
+        "evidence_id": { "type": "string", "format": "uuid" },
+        "guest_id": { "type": "string", "format": "uuid" },
+        "boot_session_id": { "type": "string", "format": "uuid" },
+        "backend": { "$ref": "#/definitions/BackendType" },
+        "guest_build_identity": { "type": "string" },
+        "image_artifact_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "config_revision_hash": { "$ref": "#/definitions/Sha256Digest" },
+        "verified_uid": { "type": "integer", "enum": [0] },
+        "positive_probe_outcome": { "$ref": "#/definitions/ProbeOutcome" },
+        "negative_control_outcome": { "$ref": "#/definitions/ProbeOutcome" },
+        "observed_kernel_version": { "type": "string" },
+        "observed_boot_args": { "type": "string" },
+        "benign_binary_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "verification_state": { "$ref": "#/definitions/RootVerificationState" },
+        "verified_at": { "type": "string", "format": "date-time" },
+        "diagnostics": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ApplicationArtifact": {
+      "type": "object",
+      "required": [
+        "app_id",
+        "bundle_identifier",
+        "bundle_name",
+        "package_path",
+        "sha256_digest",
+        "binary_architecture",
+        "code_signature_identity",
+        "entitlement_manifest",
+        "deployment_status",
+        "target_guest_id",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "app_id": { "type": "string" },
+        "bundle_identifier": { "type": "string" },
+        "bundle_name": { "type": "string" },
+        "package_path": { "type": "string" },
+        "sha256_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "binary_architecture": { "$ref": "#/definitions/CpuArchitecture" },
+        "code_signature_identity": { "type": "string" },
+        "sandbox_container_path": { "type": ["string", "null"] },
+        "entitlement_manifest": { "type": "object" },
+        "deployment_status": { "$ref": "#/definitions/AppDeploymentStatus" },
+        "target_guest_id": { "type": "string", "format": "uuid" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "HookStatus": {
+      "type": "object",
+      "required": [
+        "native_hooks_count",
+        "objc_hooks_count",
+        "events_intercepted"
+      ],
+      "properties": {
+        "native_hooks_count": { "type": "integer", "minimum": 0 },
+        "objc_hooks_count": { "type": "integer", "minimum": 0 },
+        "events_intercepted": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "InstrumentationSession": {
+      "type": "object",
+      "required": [
+        "session_id",
+        "guest_id",
+        "boot_session_id",
+        "target_process_id",
+        "agent_package_version",
+        "agent_integrity_hash",
+        "injected_script_hashes",
+        "hook_status",
+        "attachment_state",
+        "captured_hook_events_count",
+        "control_process_hooked",
+        "diagnostics"
+      ],
+      "properties": {
+        "session_id": { "type": "string" },
+        "guest_id": { "type": "string", "format": "uuid" },
+        "boot_session_id": { "type": "string", "format": "uuid" },
+        "target_process_id": { "type": "integer" },
+        "target_bundle_id": { "type": ["string", "null"] },
+        "agent_package_version": { "type": "string", "enum": ["17.18.0"] },
+        "agent_integrity_hash": { "$ref": "#/definitions/Sha256Digest" },
+        "injected_script_hashes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Sha256Digest" }
+        },
+        "hook_status": { "$ref": "#/definitions/HookStatus" },
+        "attachment_state": { "$ref": "#/definitions/FridaAttachmentState" },
+        "attached_at": { "type": ["string", "null"], "format": "date-time" },
+        "detached_at": { "type": ["string", "null"], "format": "date-time" },
+        "captured_hook_events_count": { "type": "integer", "minimum": 0 },
+        "control_process_id": { "type": ["integer", "null"] },
+        "control_process_hooked": { "type": "boolean", "enum": [false] },
+        "diagnostics": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "GuestSecurityProfile": {
+      "type": "object",
+      "required": [
+        "profile_id",
+        "name",
+        "code_signing_mode",
+        "amfi_status",
+        "sandbox_mode",
+        "root_filesystem_mount",
+        "kernel_privilege_level",
+        "guest_relaxations",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "profile_id": { "type": "string" },
+        "name": { "type": "string" },
+        "code_signing_mode": { "$ref": "#/definitions/CodeSigningMode" },
+        "amfi_status": { "$ref": "#/definitions/AmfiStatus" },
+        "sandbox_mode": { "$ref": "#/definitions/SandboxMode" },
+        "root_filesystem_mount": { "$ref": "#/definitions/MountMode" },
+        "kernel_privilege_level": {
+          "$ref": "#/definitions/KernelPrivilegeLevel"
+        },
+        "guest_relaxations": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "CompanionEnvironment": {
+      "type": "object",
+      "required": [
+        "companion_id",
+        "parent_guest_id",
+        "lifecycle_state",
+        "cpu_limit",
+        "memory_limit_mb",
+        "storage_limit_mb",
+        "endpoint_socket_path",
+        "forwarded_ports",
+        "active_workflows_count",
+        "live_dependents_count",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "companion_id": { "type": "string", "format": "uuid" },
+        "parent_guest_id": { "type": "string", "format": "uuid" },
+        "lifecycle_state": { "$ref": "#/definitions/InstanceLifecycleState" },
+        "cpu_limit": { "type": "integer", "minimum": 1 },
+        "memory_limit_mb": { "type": "integer", "minimum": 512 },
+        "storage_limit_mb": { "type": "integer", "minimum": 1024 },
+        "endpoint_socket_path": { "type": "string" },
+        "forwarded_ports": {
+          "type": "array",
+          "items": { "type": "integer" }
+        },
+        "active_workflows_count": { "type": "integer", "minimum": 0 },
+        "live_dependents_count": { "type": "integer", "minimum": 0 },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "ResearchExperimentProfile": {
+      "type": "object",
+      "required": [
+        "profile_id",
+        "name",
+        "target_backend",
+        "base_image_digest",
+        "kernel_boot_args",
+        "applied_patches",
+        "security_profile",
+        "app_artifacts",
+        "instrumentation_scripts",
+        "guest_fixtures",
+        "exported_at",
+        "version"
+      ],
+      "properties": {
+        "profile_id": { "type": "string" },
+        "name": { "type": "string" },
+        "target_backend": { "$ref": "#/definitions/BackendType" },
+        "base_image_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "kernel_boot_args": { "type": "string" },
+        "applied_patches": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "security_profile": { "$ref": "#/definitions/GuestSecurityProfile" },
+        "app_artifacts": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Sha256Digest" }
+        },
+        "instrumentation_scripts": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Sha256Digest" }
+        },
+        "guest_fixtures": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "exported_at": { "type": "string", "format": "date-time" },
+        "version": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "ExperimentRecord": {
+      "type": "object",
+      "required": [
+        "record_id",
+        "profile_id",
+        "backend",
+        "upstream_build_identity",
+        "artifact_checksums",
+        "session_parameters",
+        "execution_status",
+        "started_at",
+        "completed_at",
+        "errors"
+      ],
+      "properties": {
+        "record_id": { "type": "string", "format": "uuid" },
+        "profile_id": { "type": "string" },
+        "backend": { "$ref": "#/definitions/BackendType" },
+        "upstream_build_identity": { "type": "string" },
+        "artifact_checksums": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/definitions/Sha256Digest" }
+        },
+        "session_parameters": { "type": "object" },
+        "observed_root_proof": {
+          "anyOf": [
+            { "$ref": "#/definitions/RootProofEvidence" },
+            { "type": "null" }
+          ]
+        },
+        "instrumentation_summary": {
+          "anyOf": [{ "$ref": "#/definitions/HookStatus" }, { "type": "null" }]
+        },
+        "kernel_debug_telemetry": {
+          "type": ["object", "null"]
+        },
+        "execution_status": { "$ref": "#/definitions/OperationStatus" },
+        "started_at": { "type": "string", "format": "date-time" },
+        "completed_at": { "type": "string", "format": "date-time" },
+        "errors": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "RecoveryBaseline": {
+      "type": "object",
+      "required": [
+        "baseline_id",
+        "guest_id",
+        "backend",
+        "base_disk_digest",
+        "kernel_config_hash",
+        "clean_snapshot_path",
+        "declared_recovery_deadline_ms",
+        "verified",
+        "created_at"
+      ],
+      "properties": {
+        "baseline_id": { "type": "string" },
+        "guest_id": { "type": "string", "format": "uuid" },
+        "backend": { "$ref": "#/definitions/BackendType" },
+        "base_disk_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "kernel_config_hash": { "$ref": "#/definitions/Sha256Digest" },
+        "clean_snapshot_path": { "type": "string" },
+        "declared_recovery_deadline_ms": { "type": "integer", "minimum": 1000 },
+        "verified": { "type": "boolean" },
+        "verified_at": { "type": ["string", "null"], "format": "date-time" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "MutationProposal": {
+      "type": "object",
+      "required": [
+        "proposal_id",
+        "proposal_digest",
+        "operation_type",
+        "target_instance_id",
+        "backend",
+        "affected_paths",
+        "destructive",
+        "expires_at",
+        "parameters"
+      ],
+      "properties": {
+        "proposal_id": { "type": "string" },
+        "proposal_digest": { "$ref": "#/definitions/Sha256Digest" },
+        "operation_type": { "$ref": "#/definitions/MutationType" },
+        "target_instance_id": { "type": "string", "format": "uuid" },
+        "backend": { "$ref": "#/definitions/BackendType" },
+        "affected_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "destructive": { "type": "boolean", "enum": [true] },
+        "expires_at": { "type": "string", "format": "date-time" },
+        "parameters": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+    "KernelDebugLease": {
+      "type": "object",
+      "required": [
+        "lease_id",
+        "guest_id",
+        "session_id",
+        "client_identity",
+        "lease_state",
+        "acquired_at",
+        "heartbeat_at",
+        "qmp_cont_blocked",
+        "gdb_endpoint_path"
+      ],
+      "properties": {
+        "lease_id": { "type": "string", "format": "uuid" },
+        "guest_id": { "type": "string", "format": "uuid" },
+        "session_id": { "type": "string" },
+        "client_identity": { "type": "string" },
+        "lease_state": { "$ref": "#/definitions/DebugLeaseState" },
+        "acquired_at": { "type": "string", "format": "date-time" },
+        "heartbeat_at": { "type": "string", "format": "date-time" },
+        "qmp_cont_blocked": { "type": "boolean", "enum": [true] },
+        "gdb_endpoint_path": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
